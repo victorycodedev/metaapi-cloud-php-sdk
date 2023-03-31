@@ -3,6 +3,7 @@
 namespace Victorycodedev\MetaapiCloudPhpSdk;
 
 use Exception;
+use GuzzleHttp\Client;
 use Psr\Http\Message\ResponseInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\BadRequestException;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\ForbiddenRequestException;
@@ -10,42 +11,52 @@ use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\NotFoundException;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\TooManyRequestException;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\UnauthorizedException;
 
-trait FetchApi
+class Http
 {
 
-    public function get(string $uri)
+    public function get(string $uri, string $token): array|string
     {
-        return $this->request('GET', $uri);
+        return $this->request('GET', $uri, $token);
     }
 
-    public function post(string $uri, array $payload = [])
+    public function post(string $uri, string $token, array $payload = []): array|string
     {
-        return $this->request('POST', $uri, $payload);
+        return $this->request('POST', $uri, $token, $payload);
     }
 
-    public function put(string $uri, array $payload = [])
+    public function put(string $uri, string $token, array $payload = []): array|string
     {
-        return $this->request('PUT', $uri, $payload);
+        return $this->request('PUT', $uri, $token, $payload);
     }
 
-    public function delete(string $uri, array $payload = [])
+    public function delete(string $uri, string $token, array $payload = []): array|string
     {
-        return $this->request('DELETE', $uri, $payload);
+        return $this->request('DELETE', $uri, $token, $payload);
     }
 
-    public function request(string $verb, string $uri, array $payload = [])
+    /**
+     *  Send a request to the MetaApi API.
+     */
+    public function request(string $verb, string $uri, string $token, array $payload = []): array|string
     {
-        $response = $this->client->request(
+        $client = new Client([
+            'http_errors' => false,
+            'headers' => [
+                'auth-token' => $token,
+                'Accept' => 'application/json',
+            ],
+        ]);
+
+        $response = $client->request(
             $verb,
             $uri,
             empty($payload) ? [] : [
-                'body' => json_encode($payload),
-                'content-type' => 'application/json',
+                'body' => $payload,
             ]
         );
 
         if (!$this->isSuccessful($response)) {
-            return $this->handleRequestError($response);
+            return $this->handleError($response);
         }
 
         $responseBody = (string)$response->getBody();
@@ -59,10 +70,10 @@ trait FetchApi
             return false;
         }
 
-        return (int)substr($response->getStatusCode(), 0, 1) === 2;
+        return $response->getStatusCode() >= 200 && $response->getStatusCode() < 300;
     }
 
-    public function handleRequestError(ResponseInterface $response): void
+    public function handleError(ResponseInterface $response): void
     {
         match ($response->getStatusCode()) {
             400 => throw new BadRequestException((string)$response->getBody()),
