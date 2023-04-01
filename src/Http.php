@@ -13,36 +13,39 @@ use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\UnauthorizedException;
 
 class Http
 {
-
-    public function get(string $uri, string $token): array|string
+    public function __construct(private string $token)
     {
-        return $this->request('GET', $uri, $token);
     }
 
-    public function post(string $uri, string $token, array $payload = []): array|string
+    public function get(string $uri): array|string
     {
-        return $this->request('POST', $uri, $token, $payload);
+        return $this->request('GET', $uri,);
     }
 
-    public function put(string $uri, string $token, array $payload = []): array|string
+    public function post(string $uri, array $payload = []): array|string
     {
-        return $this->request('PUT', $uri, $token, $payload);
+        return $this->request('POST', $uri,  $payload);
     }
 
-    public function delete(string $uri, string $token, array $payload = []): array|string
+    public function put(string $uri, array $payload = []): array|string
     {
-        return $this->request('DELETE', $uri, $token, $payload);
+        return $this->request('PUT', $uri,  $payload);
+    }
+
+    public function delete(string $uri, array $payload = []): array|string
+    {
+        return $this->request('DELETE', $uri,  $payload);
     }
 
     /**
      *  Send a request to the MetaApi API.
      */
-    public function request(string $verb, string $uri, string $token, array $payload = []): array|string
+    public function request(string $verb, string $uri, array $payload = []): array|string
     {
         $client = new Client([
             'http_errors' => false,
             'headers' => [
-                'auth-token' => $token,
+                'auth-token' => $this->token,
                 'Accept' => 'application/json',
             ],
         ]);
@@ -51,7 +54,7 @@ class Http
             $verb,
             $uri,
             empty($payload) ? [] : [
-                'body' => $payload,
+                'body' => json_encode($payload),
             ]
         );
 
@@ -77,10 +80,10 @@ class Http
     {
         match ($response->getStatusCode()) {
             400 => throw new BadRequestException((string)$response->getBody()),
-            401 => throw new UnauthorizedException(),
-            403 => throw new ForbiddenRequestException(),
-            404 => throw new NotFoundException(),
-            429 => throw new TooManyRequestException(),
+            401 => throw new UnauthorizedException((string)$response->getBody()),
+            403 => throw new ForbiddenRequestException((string)$response->getBody()),
+            404 => throw new NotFoundException((string)$response->getBody()),
+            429 => throw new TooManyRequestException((string)$response->getBody()),
             default => throw new Exception((string)$response->getBody()),
         };
     }
