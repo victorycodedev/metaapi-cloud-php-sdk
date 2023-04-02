@@ -2,8 +2,14 @@
 
 namespace Victorycodedev\MetaapiCloudPhpSdk;
 
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Configuration;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\CopyTrade;
+
 class CopyFactory
 {
+    use Configuration;
+    use CopyTrade;
+
     public Http $http;
 
     public string $baseUrl = 'https://copyfactory-api-v1.new-york.agiliumtrade.ai';
