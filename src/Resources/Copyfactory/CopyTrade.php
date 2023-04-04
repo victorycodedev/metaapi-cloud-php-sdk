@@ -2,51 +2,54 @@
 
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 
+use Victorycodedev\MetaapiCloudPhpSdk\AccountApi;
+
 trait CopyTrade
 {
     use Configuration;
-    public string $acntUrl = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
+
     /*
     *   Create actual copy trade in metaapi.cloud
     */
-    public function copy(string $providerAccount, string $subscriberAccount): array|string
+    public function copy(string $providerAccount, string $subscriberAccount, string $strategyId = null): array|string
     {
-        $error = [];
-
         try {
-            $masterMetaapiAccount = $this->http->get("{$this->acntUrl}/users/current/accounts/{$providerAccount}");
-            $slaveMetaapiAccount = $this->http->get("{$this->acntUrl}/users/current/accounts/{$subscriberAccount}");
+            $account = new AccountApi($this->token);
+
+            $masterMetaapiAccount = $account->readById($providerAccount);
+            $slaveMetaapiAccount = $account->readById($subscriberAccount);
 
             if (!in_array('PROVIDER', $masterMetaapiAccount['copyFactoryRoles'])) {
-                $error['message'] = "Account {$providerAccount} is not a provider account. Please specify PROVIDER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API";
-                throw new \Exception((string) $error);
+                $response = "{'message': 'Account {$providerAccount} is not a provider account. Please specify PROVIDER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
+                throw new \Exception((string) $response);
             }
 
             if (!in_array('SUBSCRIBER', $slaveMetaapiAccount['copyFactoryRoles'])) {
-                $error['message'] = "Account {$subscriberAccount} is not a subscriber account. Please specify SUBSCRIBER copyFactoryRoles value in your MetaApi account in ' +
-                'order to use it in CopyFactory API";
-                throw new \Exception((string) $error);
+                $response = "{'message': 'Account {$subscriberAccount} is not a subscriber account. Please specify SUBSCRIBER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
+                throw new \Exception((string) $response);
             }
 
             // get strategy ID
-            $strategies = $this->strategies();
-            $strategy = [];
+            if (empty($strategyId)) {
+                $strategies = $this->strategies();
+                $strategy = [];
 
-            foreach ($strategies as $value) {
-                if ($value['accountId'] == $masterMetaapiAccount['_id']) {
-                    $strategy = $value;
-                    break;
+                foreach ($strategies as $value) {
+                    if ($value['accountId'] == $masterMetaapiAccount['_id']) {
+                        $strategy = $value;
+                        break;
+                    }
+                }
+
+                if (!empty($strategy)) {
+                    $strategyId = $strategy['_id'];
+                } else {
+                    $strategyId = $this->generateStrategyId()['id'];
                 }
             }
 
-            if (!empty($strategy)) {
-                $strategyId = $strategy['_id'];
-            } else {
-                $strategyId = $this->generateStrategyId();
-            }
-
             // create a strategy being copied
-            $this->http->put("{$this->baseUrl}/users/current/configuration/strategies/{$strategyId}", [
+            $this->http->put("/users/current/configuration/strategies/{$strategyId}", [
                 "name" => "Test strategy",
                 "description" => "Some useful description about your strategy",
                 "accountId" => $masterMetaapiAccount['_id']
@@ -54,12 +57,16 @@ trait CopyTrade
 
             // create subscriber
             $this->updateSubscriber($slaveMetaapiAccount['_id'], [
-                'strategyId' => $strategyId,
-                'multiplier' => 1
+                'name' => "Copy Trade Subscriber",
+                'subscriptions' => [
+                    [
+                        'strategyId' => $strategyId,
+                        'multiplier' => 1,
+                    ]
+                ]
             ]);
 
-            $message = (string) ['message' => "Copy trade created successfully"];
-            return json_decode($message, true);
+            return  ['message' => "Copy trade created successfully"];
         } catch (\Throwable $th) {
             throw new \Exception($th->getMessage());
         }
