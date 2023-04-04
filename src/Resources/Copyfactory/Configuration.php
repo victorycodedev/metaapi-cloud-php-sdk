@@ -11,7 +11,7 @@ trait Configuration
     */
     public function generateStrategyId(): array|string
     {
-        return $this->http->get("{$this->baseUrl}/{$this->configUrl}/unused-strategy-id");
+        return $this->http->get("/{$this->configUrl}/unused-strategy-id");
     }
 
     /*
@@ -19,7 +19,7 @@ trait Configuration
     */
     public function strategies(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string
     {
-        return $this->http->get("{$this->baseUrl}/{$this->configUrl}/strategies?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
+        return $this->http->get("/{$this->configUrl}/strategies?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
     }
 
     /*
@@ -27,7 +27,7 @@ trait Configuration
     */
     public function strategy(string $strategyId): array|string
     {
-        return $this->http->get("{$this->baseUrl}/{$this->configUrl}/strategies/{$strategyId}");
+        return $this->http->get("/{$this->configUrl}/strategies/{$strategyId}");
     }
 
     /*
@@ -35,7 +35,7 @@ trait Configuration
     */
     public function updateStrategy(string $strategyId, array $data): array|string
     {
-        return $this->http->put("{$this->baseUrl}/{$this->configUrl}/strategies/{$strategyId}", $data);
+        return $this->http->put("/{$this->configUrl}/strategies/{$strategyId}", $data);
     }
 
     /*
@@ -43,7 +43,7 @@ trait Configuration
     */
     public function removeStrategy(string $strategyId): array|string
     {
-        return $this->http->delete("{$this->baseUrl}/{$this->configUrl}/strategies/{$strategyId}");
+        return $this->http->delete("/{$this->configUrl}/strategies/{$strategyId}");
     }
 
     /*
@@ -51,7 +51,7 @@ trait Configuration
     */
     public function subscribers(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string
     {
-        return $this->http->delete("{$this->baseUrl}/{$this->configUrl}/subscribers?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
+        return $this->http->get("/{$this->configUrl}/subscribers?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
     }
 
     /*
@@ -59,7 +59,7 @@ trait Configuration
     */
     public function subscriber(string $subscriberId): array|string
     {
-        return $this->http->get("{$this->baseUrl}/{$this->configUrl}/subscribers/{$subscriberId}");
+        return $this->http->get("/{$this->configUrl}/subscribers/{$subscriberId}");
     }
 
     /*
@@ -68,7 +68,7 @@ trait Configuration
 
     public function updateSubscriber(string $subscriberId, array $data): array|string
     {
-        return $this->http->put("{$this->baseUrl}/{$this->configUrl}/subscribers/{$subscriberId}", $data);
+        return $this->http->put("/{$this->configUrl}/subscribers/{$subscriberId}", $data);
     }
 
     /*
@@ -76,7 +76,7 @@ trait Configuration
     */
     public function removeSubscriber(string $subscriberId): array|string
     {
-        return $this->http->delete("{$this->baseUrl}/{$this->configUrl}/subscribers/{$subscriberId}");
+        return $this->http->delete("/{$this->configUrl}/subscribers/{$subscriberId}");
     }
 
     /*
@@ -85,6 +85,6 @@ trait Configuration
 
     public function deleteSubscription(string $subscriberId, string $strategyId): array|string
     {
-        return $this->http->delete("{$this->baseUrl}/{$this->configUrl}/subscribers/{$subscriberId}/subscriptions/{$strategyId}");
+        return $this->http->delete("/{$this->configUrl}/subscribers/{$subscriberId}/subscriptions/{$strategyId}");
     }
 }

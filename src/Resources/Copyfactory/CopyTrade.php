@@ -5,7 +5,7 @@ namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 trait CopyTrade
 {
     use Configuration;
-    public string $acntUrl = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.a";
+    public string $acntUrl = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
     /*
     *   Create actual copy trade in metaapi.cloud
     */
@@ -58,9 +58,10 @@ trait CopyTrade
                 'multiplier' => 1
             ]);
 
-            return (string) ['message' => "Copy trade created successfully"];
+            $message = (string) ['message' => "Copy trade created successfully"];
+            return json_decode($message, true);
         } catch (\Throwable $th) {
-            throw new \Exception((string) $th->getMessage());
+            throw new \Exception($th->getMessage());
         }
     }
 }
