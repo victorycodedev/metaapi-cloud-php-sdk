@@ -63,13 +63,19 @@ class Http
             return $this->handleError($response);
         }
 
-        $responseBody = (string)$response->getBody();
-
-        if (empty($responseBody)) {
-            $responseBody = '{"success": true, "message": "Action successful"}';
+        if ($response->hasHeader('Retry-After')) {
+            $retryAfter = $response->getHeader('Retry-After')[0];
+            $body = array_merge(json_decode((string)$response->getBody(), true), ['retryAfter' => $retryAfter]);
+            $resBody = json_encode($body);
+        } else {
+            $resBody = (string)$response->getBody();
         }
 
-        return json_decode($responseBody, true) ?: $responseBody;
+        if (empty($resBody)) {
+            $resBody = '{"success": true, "message": "Action successful"}';
+        }
+
+        return json_decode($resBody, true) ?: $resBody;
     }
 
     public function isSuccessful($response): bool
