@@ -9,7 +9,7 @@ trait Metrics
     */
     public function metrics(string $accountId, bool $includeOpenPositions = false): array|string
     {
-        return $this->http->get("{$this->baseUrl}/users/current/accounts/{$accountId}/metrics?includeOpenPositions={$includeOpenPositions}");
+        return $this->http->get("/users/current/accounts/{$accountId}/metrics?includeOpenPositions={$includeOpenPositions}");
     }
 
     /*
@@ -17,6 +17,6 @@ trait Metrics
     */
     public function openTrades(string $accountId): array|string
     {
-        return $this->http->get("{$this->baseUrl}/users/current/accounts/{$accountId}/open-trades");
+        return $this->http->get("/users/current/accounts/{$accountId}/open-trades");
     }
 }
