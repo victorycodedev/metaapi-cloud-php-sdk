@@ -10,12 +10,12 @@ class AccountApi
 
     public Http $http;
 
-    public string $baseUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
+    public string $serverUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
 
-    public function __construct(private string $token, string $baseUrl = '')
+    public function __construct(private string $token, string $serverUrl = null)
     {
         $this->token = $token;
-        $this->baseUrl = $baseUrl === '' ? $this->baseUrl : $baseUrl;
-        $this->http = new Http($this->token);
+        $this->serverUrl = $serverUrl ?? $this->serverUrl;
+        $this->http = new Http($this->token, $this->serverUrl);
     }
 }

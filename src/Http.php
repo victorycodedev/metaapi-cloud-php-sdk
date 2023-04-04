@@ -13,8 +13,19 @@ use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\UnauthorizedException;
 
 class Http
 {
-    public function __construct(private string $token)
+    protected Client $client;
+
+    public function __construct(protected string $token, protected string $baseUrl, Client $client = null)
     {
+        $this->client = $client ?? new Client([
+            'base_uri' => $this->baseUrl,
+            'http_errors' => false,
+            'headers' => [
+                'auth-token'    => $this->token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json'
+            ],
+        ]);
     }
 
     public function get(string $uri): array|string
@@ -42,20 +53,10 @@ class Http
      */
     public function request(string $verb, string $uri, array $payload = []): array|string
     {
-        $client = new Client([
-            'http_errors' => false,
-            'headers' => [
-                'auth-token' => $this->token,
-                'Accept' => 'application/json',
-            ],
-        ]);
-
-        $response = $client->request(
+        $response = $this->client->request(
             $verb,
             $uri,
-            empty($payload) ? [] : [
-                'body' => json_encode($payload),
-            ]
+            empty($payload) ? [] : ['json' => $payload]
         );
 
         if (!$this->isSuccessful($response)) {
@@ -63,6 +64,10 @@ class Http
         }
 
         $responseBody = (string)$response->getBody();
+
+        if (empty($responseBody)) {
+            $responseBody = '{"success": true, "message": "Action successful"}';
+        }
 
         return json_decode($responseBody, true) ?: $responseBody;
     }
