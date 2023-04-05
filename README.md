@@ -160,6 +160,189 @@ try {
 
 ```
 
+You can create an instance of the SDK like so for Copyfactory:
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
+
+$copyfactory = new CopyFactory('AUTH_TOKEN');
+
+```
+
+To generate a strategy id
+
+```php
+
+try {
+   return $copyfactory->generateStrategyId();
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To get all your strategies 
+
+```php
+
+try {
+   return $copyfactory->strategies();
+    //you can also pass in other parameters like so
+    return $copyfactory->strategies(includeRemoved: true, limit: 1000, offset: 0 );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To get a single  strategy 
+
+```php
+
+try {
+   return $copyfactory->strategy("strategid");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To update a strategy 
+
+```php
+
+try {
+   return $copyfactory->updateStrategy("strategid", [
+        "name" => "Test strategy", 
+        "description" => "Some useful description about your strategy", 
+        "accountId" => "105646d8-8c97-4d4d-9b74-413bd66cd4ed" 
+   ]);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To remove a strategy 
+
+```php
+
+try {
+   return $copyfactory->removeStrategy("strategid");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To get all your subscribers
+
+```php
+
+try {
+   return $copyfactory->subscribers();
+    //you can also pass in other parameters like so
+    return $copyfactory->subscribers(includeRemoved: true, limit: 1000, offset: 0 );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To get a subscriber
+
+```php
+
+try {
+   return $copyfactory->subscriber("subscriberiId");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To update a subscriber data
+
+```php
+
+try {
+   return $copyfactory->updateSubscriber("subsciberId", [
+        'name' => "Copy Trade Subscriber",
+        'subscriptions' => [
+            [
+                'strategyId' => 'dJZq',
+                'multiplier' => 1,
+            ]
+        ]
+    ]);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To remove a subscriber
+
+```php
+
+try {
+   return $copyfactory->removeSubscriber("subsciberId");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+To delete a subscription
+
+```php
+
+try {
+   return $copyfactory->deleteSubscription("subsciberId", "strategyId");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+## Copy Trade
+
+To Copy a trade from provider to subscriber.
+I recommend you create a stratgy before hand and save to your database before you perform a copy trade, but its not compulsory
+as the package will create one for you. You can always read all your strategies in your account with this package. 
+
+To Copy trade do: 
+
+```php
+
+try {
+    $strategyId = "yd24";
+    $providerAccountId = "Enter your provider account ID";
+    $subAccountId = "Enter Subscriber Account ID";
+
+    return $copyfactory->copy($accountId, $subAccountId, $stragyId);
+
+    /*
+        You can ommit the strategy Id and just copy the trade 
+    */
+
+    return $copyfactory->copy($accountId, $subAccountId);
+
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
 
 ## Contributing
 
