@@ -386,13 +386,23 @@ try {
 
 ```
 
+## API Reference
+All API references can be found on Metaapi documentation website. https://metaapi.cloud/
+
+## Security
+If you discover any security related issues, please open an issue.
+
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change.
+Pull requests are welcome. 
 
-Please make sure to update tests as appropriate.
+## How can I thank you?
+Why not star the github repo? I'd love the attention! you can share the link for this repository on Twitter or HackerNews? 
+
+Don't forget to [follow me on twitter!](https://twitter.com/EfekpoguaVicto4)
+
+Thanks! Efekpogua Victory.
 
 ## License
 
-[MIT](./LICENSE.md)
+The MIT License (MIT). Please see [License File](./LICENSE.md) or more information.
