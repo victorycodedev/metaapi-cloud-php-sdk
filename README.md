@@ -33,7 +33,7 @@ You can add a trading account and starts a cloud API server for the trading acco
 ```php
 
 try {
-    $anct = $account->create([
+    return $anct = $account->create([
         "login" => "123456", 
         "password" => "password", 
         "name" => "testAccount", 
@@ -41,13 +41,13 @@ try {
         "platform" => "mt5", 
         "magic" => 123456 
     ]);
-    } catch (\Throwable $th) {
-        $response = json_decode($th->getMessage());
-        return $response->message;
-    }
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
 
 ```
-if the request was successful , you will get the the account id and state
+if the request was successful , you will get the the account id and state, else an Exception will be thrown
 
 ```php
     [
@@ -55,6 +55,111 @@ if the request was successful , you will get the the account id and state
         "state" => "DEPLOYED" 
     ]
 ```
+
+You can read an account by the id
+
+```php
+
+try {
+     return $account->readById("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+
+You can read all accounts in your metaapi
+
+```php
+
+try {
+    return $account->readAll();
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+You can update an account
+
+```php
+
+try {
+    return  $account->update("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9",[
+        "password" => "password", 
+        "name" => "testAccount", 
+        "server" => "ICMarketsSC-Demo", 
+    ]);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+Undeploy an account
+
+```php
+
+try {
+    return $account->unDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+    // you can pass other parameters 
+    return $account->unDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+Deploy an account
+
+```php
+
+try {
+    return $account->deploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+     // you can pass other parameters 
+    return $account->deploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+Redeploy an account
+
+```php
+
+try {
+    return $account->reDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+     // you can pass other parameters 
+    return $account->reDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+Delete an account
+
+```php
+
+try {
+    return $account->delete("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+     // you can pass other parameters 
+    return $account->delete("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", true);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
 
 ## Contributing
 
