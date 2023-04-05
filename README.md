@@ -12,7 +12,7 @@ To install the SDK in your project you need to install the package via composer:
 composer require victorycodedev/metaapi-cloud-php-sdk
 ```
 
-## Usage
+## Usage: Account Management
 
 You can create an instance of the SDK like so for Account Management:
 ```php
@@ -159,6 +159,7 @@ try {
 }
 
 ```
+## Usage: CopyFactory
 
 You can create an instance of the SDK like so for Copyfactory:
 ```php
@@ -329,14 +330,55 @@ try {
     $providerAccountId = "Enter your provider account ID";
     $subAccountId = "Enter Subscriber Account ID";
 
-    return $copyfactory->copy($accountId, $subAccountId, $stragyId);
+    return $copyfactory->copy($providerAccountId, $subAccountId, $stragyId);
 
     /*
         You can ommit the strategy Id and just copy the trade 
     */
 
-    return $copyfactory->copy($accountId, $subAccountId);
+    return $copyfactory->copy($providerAccountId, $subAccountId);
 
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+## Usage: MetaStats
+
+You can get metrics for you account
+
+You can create an instance of the SDK like so for Copyfactory:
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
+
+$stats = new MetaStats('AUTH_TOKEN');
+
+```
+
+To get metrics: 
+
+```php
+
+try {
+   return  $stats->metrics("accountId");
+    //  You can pass a boolean as second parameter if you want to include open positions in your metrics
+     return  $stats->metrics("accountId", true);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
+
+
+To get open trades for MetaApi account:
+
+```php
+
+try {
+   return  $stats->openTrades("accountId");
 } catch (\Throwable $th) {
     $response = json_decode($th->getMessage());
     return $response->message;
