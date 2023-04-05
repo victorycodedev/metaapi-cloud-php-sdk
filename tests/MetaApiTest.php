@@ -65,7 +65,7 @@ class MetaapiTest extends TestCase
             'Accept' => 'application/json',
         ],]);
 
-        $http = new Http($this->token, $this->client);
+        $http = new Http($this->token, '', $this->client);
 
         $response = $http->get('https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9');
 
@@ -89,7 +89,7 @@ class MetaapiTest extends TestCase
             'Accept' => 'application/json',
         ],]);
 
-        $http = new Http($this->token, $this->client);
+        $http = new Http($this->token, '', $this->client);
 
         $this->expectException(ClientException::class);
 
