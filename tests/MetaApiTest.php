@@ -7,12 +7,14 @@ use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Victorycodedev\MetaapiCloudPhpSdk\AccountApi;
 use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
 
+#[CoversNothing]
 class MetaapiTest extends TestCase
 {
     protected Client $client;
