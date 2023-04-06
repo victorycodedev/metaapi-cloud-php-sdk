@@ -17,7 +17,10 @@ use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
 class MetaapiTest extends TestCase
 {
     protected Client $client;
+
     private string $token;
+
+    protected string $acntUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
 
     // setup
     public function setUp(): void
@@ -49,7 +52,7 @@ class MetaapiTest extends TestCase
     }
 
     /** @test */
-    public function can_make_a_successful_request(): void
+    public function it_can_make_a_get_request(): void
     {
         // require the vairables from the Variables.php file
         require_once 'Variables.php';
@@ -63,12 +66,82 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ], ]);
+        ],]);
 
         $http = new Http($this->token, '', $this->client);
 
-        $response = $http->get('https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9');
+        $response = $http->get("{$this->acntUrl}/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
 
         $this->assertEquals($arrayResonse, $response);
+        $this->assertIsArray($response);
+    }
+
+    /** @test */
+    public function it_can_make_a_post_request(): void
+    {
+        // Create a mock.
+        $mock = new MockHandler([
+            new Response(200, [], '{
+                "id": "1eda642a-a9a3-457c-99af-3bc5e8d5c4c9",
+                "state": "DEPLOYED"
+              }'),
+        ]);
+
+        $handlerStack = HandlerStack::create($mock);
+
+        $this->client = new Client(['handler' => $handlerStack, 'headers' => [
+            'Accept' => 'application/json',
+        ],]);
+
+        $http = new Http($this->token, '', $this->client);
+
+        $response = $http->post("{$this->acntUrl}/users/current/accounts");
+        $this->assertIsArray($response);
+    }
+
+    /** @test */
+    public function it_can_make_a_put_request(): void
+    {
+        // Create a mock.
+        $mock = new MockHandler([
+            new Response(200, [], ''),
+        ]);
+
+        $handlerStack = HandlerStack::create($mock);
+
+        $this->client = new Client(['handler' => $handlerStack, 'headers' => [
+            'Accept' => 'application/json',
+        ],]);
+
+        $http = new Http($this->token, '', $this->client);
+
+        $response = $http->put("{$this->acntUrl}/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", [
+            "password" => "password",
+            "name" => "testAccount",
+            "server" => "ICMarketsSC-Demo"
+        ]);
+
+        $this->assertArrayHasKey('success', $response);
+    }
+
+    /** @test */
+    public function it_can_make_a_delete_request(): void
+    {
+        // Create a mock.
+        $mock = new MockHandler([
+            new Response(200, [], ''),
+        ]);
+
+        $handlerStack = HandlerStack::create($mock);
+
+        $this->client = new Client(['handler' => $handlerStack, 'headers' => [
+            'Accept' => 'application/json',
+        ],]);
+
+        $http = new Http($this->token, '', $this->client);
+
+        $response = $http->delete("{$this->acntUrl}/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
+
+        $this->assertArrayHasKey('success', $response);
     }
 }
