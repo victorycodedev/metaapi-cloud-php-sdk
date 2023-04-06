@@ -66,7 +66,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
@@ -91,7 +91,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
@@ -111,14 +111,14 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
         $response = $http->put("{$this->acntUrl}/users/current/accounts/1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", [
-            "password" => "password",
-            "name" => "testAccount",
-            "server" => "ICMarketsSC-Demo"
+            'password' => 'password',
+            'name'     => 'testAccount',
+            'server'   => 'ICMarketsSC-Demo',
         ]);
 
         $this->assertArrayHasKey('success', $response);
@@ -136,7 +136,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
