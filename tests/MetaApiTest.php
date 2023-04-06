@@ -3,7 +3,6 @@
 namespace Victorycodedev\MetaapiCloudPhpSdk\Tests;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
@@ -64,7 +63,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
