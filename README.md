@@ -1,8 +1,8 @@
 # Metaapi PHP sdk
 
-A PHP Package that let's seamlessly perform api call to Metapapi https://metaapi.cloud/
+A PHP Package that let you seamlessly perform api call to Metapapi https://metaapi.cloud/
 NOTE: This package does not include all api calls in Metapi.
-This package mainly focuses on the copytrade feature of metaapi, but it can also perform other functions.
+You can do CopyTrade, Account Managment and Metrics.
 
 ## Installation
 
@@ -12,7 +12,9 @@ To install the SDK in your project you need to install the package via composer:
 composer require victorycodedev/metaapi-cloud-php-sdk
 ```
 
-## Usage: Account Management
+## Usage
+
+## Account Management
 
 You can create an instance of the SDK like so for Account Management:
 ```php
@@ -22,7 +24,7 @@ $account = new AccountApi('AUTH_TOKEN');
 
 ```
 
-All methods throws exceptions when the request is not successful, so be sure to use try and catch in your code.
+All methods throws exceptions when the request is not successful, so be sure to put your code in a try and catch block.
 
 ```php
  when statusCode >= 200 && statusCode < 300;
@@ -33,7 +35,7 @@ You can add a trading account and starts a cloud API server for the trading acco
 ```php
 
 try {
-    return $anct = $account->create([
+    return $account->create([
         "login" => "123456", 
         "password" => "password", 
         "name" => "testAccount", 
@@ -70,7 +72,7 @@ try {
 ```
 
 
-You can read all accounts in your metaapi
+You can read all trading accounts in your metaapi account
 
 ```php
 
@@ -159,7 +161,7 @@ try {
 }
 
 ```
-## Usage: CopyFactory
+## CopyFactory
 
 You can create an instance of the SDK like so for Copyfactory:
 ```php
@@ -197,7 +199,7 @@ try {
 
 ```
 
-To get a single  strategy 
+To get a single strategy 
 
 ```php
 
@@ -319,7 +321,7 @@ try {
 
 To Copy a trade from provider to subscriber.
 I recommend you create a stratgy before hand and save to your database before you perform a copy trade, but its not compulsory
-as the package will create one for you. You can always read all your strategies in your account with this package. 
+as the package will create one for you. You can always read all your strategies in your account with the " $copyfactory->strategies()". 
 
 To Copy trade do: 
 
@@ -344,12 +346,13 @@ try {
 }
 
 ```
+Note: copying a trade will take some seconds to finish, you you can have a loading indicator as feedback.
 
-## Usage: MetaStats
+## MetaStats
 
 You can get metrics for you account
 
-You can create an instance of the SDK like so for Copyfactory:
+You can create an instance of the SDK like so for MetaStats:
 ```php
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
 
@@ -383,6 +386,14 @@ try {
     $response = json_decode($th->getMessage());
     return $response->message;
 }
+
+```
+
+## Testing 
+
+```php
+
+composer test
 
 ```
 
