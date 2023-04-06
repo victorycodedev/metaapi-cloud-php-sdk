@@ -22,7 +22,7 @@ class MetaapiTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->token = "test-token";
+        $this->token = 'test-token';
     }
 
     /** @test */
@@ -47,7 +47,6 @@ class MetaapiTest extends TestCase
         $this->assertTrue(is_object($object));
     }
 
-
     /** @test */
     public function can_make_a_successful_request(): void
     {
@@ -63,7 +62,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 
@@ -87,7 +86,7 @@ class MetaapiTest extends TestCase
 
         $this->client = new Client(['handler' => $handlerStack, 'headers' => [
             'Accept' => 'application/json',
-        ],]);
+        ], ]);
 
         $http = new Http($this->token, '', $this->client);
 

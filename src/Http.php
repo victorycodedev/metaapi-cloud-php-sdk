@@ -18,34 +18,34 @@ class Http
     public function __construct(protected string $token, protected string $baseUrl, Client $client = null)
     {
         $this->client = $client ?? new Client([
-            'base_uri' => $this->baseUrl,
+            'base_uri'    => $this->baseUrl,
             'http_errors' => false,
-            'headers' => [
+            'headers'     => [
                 'auth-token'    => $this->token,
                 'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json'
+                'Accept'        => 'application/json',
             ],
         ]);
     }
 
     public function get(string $uri): array|string
     {
-        return $this->request('GET', $uri,);
+        return $this->request('GET', $uri);
     }
 
     public function post(string $uri, array $payload = []): array|string
     {
-        return $this->request('POST', $uri,  $payload);
+        return $this->request('POST', $uri, $payload);
     }
 
     public function put(string $uri, array $payload = []): array|string
     {
-        return $this->request('PUT', $uri,  $payload);
+        return $this->request('PUT', $uri, $payload);
     }
 
     public function delete(string $uri, array $payload = []): array|string
     {
-        return $this->request('DELETE', $uri,  $payload);
+        return $this->request('DELETE', $uri, $payload);
     }
 
     /**
@@ -65,10 +65,10 @@ class Http
 
         if ($response->hasHeader('Retry-After')) {
             $retryAfter = $response->getHeader('Retry-After')[0];
-            $body = array_merge(json_decode((string)$response->getBody(), true), ['retryAfter' => $retryAfter]);
+            $body = array_merge(json_decode((string) $response->getBody(), true), ['retryAfter' => $retryAfter]);
             $resBody = json_encode($body);
         } else {
-            $resBody = (string)$response->getBody();
+            $resBody = (string) $response->getBody();
         }
 
         if (empty($resBody)) {
@@ -90,12 +90,12 @@ class Http
     public function handleError(ResponseInterface $response): void
     {
         match ($response->getStatusCode()) {
-            400 => throw new BadRequestException((string)$response->getBody()),
-            401 => throw new UnauthorizedException((string)$response->getBody()),
-            403 => throw new ForbiddenRequestException((string)$response->getBody()),
-            404 => throw new NotFoundException((string)$response->getBody()),
-            429 => throw new TooManyRequestException((string)$response->getBody()),
-            default => throw new Exception((string)$response->getBody()),
+            400     => throw new BadRequestException((string) $response->getBody()),
+            401     => throw new UnauthorizedException((string) $response->getBody()),
+            403     => throw new ForbiddenRequestException((string) $response->getBody()),
+            404     => throw new NotFoundException((string) $response->getBody()),
+            429     => throw new TooManyRequestException((string) $response->getBody()),
+            default => throw new Exception((string) $response->getBody()),
         };
     }
 }

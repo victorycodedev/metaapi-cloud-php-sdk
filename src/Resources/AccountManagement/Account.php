@@ -11,12 +11,12 @@ trait Account
 
     public function readAll(): array|string
     {
-        return $this->http->get("/users/current/accounts");
+        return $this->http->get('/users/current/accounts');
     }
 
     public function create(array $data): array|string
     {
-        return $this->http->post("/users/current/accounts", $data);
+        return $this->http->post('/users/current/accounts', $data);
     }
 
     public function update(string $accountId, array $data): array|string
