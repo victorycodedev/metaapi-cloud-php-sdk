@@ -320,7 +320,7 @@ try {
 ## Copy Trade
 
 To Copy a trade from provider to subscriber.
-I recommend you create a stratgy before hand and save to your database before you perform a copy trade, but its not compulsory
+I recommend you create a strategy before hand and save to your database before you perform a copy trade, but its not compulsory
 as the package will create one for you. You can always read all your strategies in your account with the " $copyfactory->strategies()". 
 
 To Copy trade do: 
@@ -332,10 +332,11 @@ try {
     $providerAccountId = "Enter your provider account ID";
     $subAccountId = "Enter Subscriber Account ID";
 
-    return $copyfactory->copy($providerAccountId, $subAccountId, $stragyId);
+    return $copyfactory->copy($providerAccountId, $subAccountId, $strategyId);
 
     /*
-        You can ommit the strategy Id and just copy the trade 
+    * You can ommit the strategy Id and just copy the trade 
+    * The package will create a strategy as part of the copy process.
     */
 
     return $copyfactory->copy($providerAccountId, $subAccountId);
