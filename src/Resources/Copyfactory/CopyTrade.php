@@ -21,11 +21,13 @@ trait CopyTrade
 
             if (!in_array('PROVIDER', $masterMetaapiAccount['copyFactoryRoles'])) {
                 $response = "{'message': 'Account {$providerAccount} is not a provider account. Please specify PROVIDER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
+
                 throw new \Exception((string) $response);
             }
 
             if (!in_array('SUBSCRIBER', $slaveMetaapiAccount['copyFactoryRoles'])) {
                 $response = "{'message': 'Account {$subscriberAccount} is not a subscriber account. Please specify SUBSCRIBER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
+
                 throw new \Exception((string) $response);
             }
 
@@ -50,23 +52,23 @@ trait CopyTrade
 
             // create a strategy being copied
             $this->http->put("/users/current/configuration/strategies/{$strategyId}", [
-                "name" => "Test strategy",
-                "description" => "Some useful description about your strategy",
-                "accountId" => $masterMetaapiAccount['_id']
+                'name'        => 'Test strategy',
+                'description' => 'Some useful description about your strategy',
+                'accountId'   => $masterMetaapiAccount['_id'],
             ]);
 
             // create subscriber
             $this->updateSubscriber($slaveMetaapiAccount['_id'], [
-                'name' => "Copy Trade Subscriber",
+                'name'          => 'Copy Trade Subscriber',
                 'subscriptions' => [
                     [
                         'strategyId' => $strategyId,
                         'multiplier' => 1,
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
-            return  ['message' => "Copy trade created successfully"];
+            return  ['message' => 'Copy trade created successfully'];
         } catch (\Throwable $th) {
             throw new \Exception($th->getMessage());
         }

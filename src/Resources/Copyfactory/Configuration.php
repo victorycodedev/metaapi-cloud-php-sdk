@@ -4,7 +4,7 @@ namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 
 trait Configuration
 {
-    private string $configUrl = "users/current/configuration";
+    private string $configUrl = 'users/current/configuration';
 
     /*
     *   Generates a new strategy id
