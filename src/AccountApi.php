@@ -9,9 +9,11 @@ use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\ProvisioningPr
 
 class AccountApi
 {
+    public const DEFAULT_SERVER_URL = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
+
     public Http $http;
 
-    public string $serverUrl = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai';
+    public string $serverUrl = self::DEFAULT_SERVER_URL;
 
     private Account $accounts;
 

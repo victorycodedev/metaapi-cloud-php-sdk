@@ -39,9 +39,14 @@ class Http
         return $this->request('PUT', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
     }
 
-    public function delete(string $uri, array $query = [], array $headers = []): array|string|null
+    public function patch(string $uri, array $payload = [], array $headers = [], array $query = []): array|string|null
     {
-        return $this->request('DELETE', $uri, ['query' => $query, 'headers' => $headers]);
+        return $this->request('PATCH', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
+    }
+
+    public function delete(string $uri, array $query = [], array $headers = [], array $payload = []): array|string|null
+    {
+        return $this->request('DELETE', $uri, ['query' => $query, 'headers' => $headers, 'json' => $payload]);
     }
 
     public function upload(string $uri, string $filePath, string $fieldName = 'file', array $headers = []): array|string|null

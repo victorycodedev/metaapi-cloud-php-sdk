@@ -14,6 +14,11 @@ use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\AccountReplica
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\ProvisioningProfile;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Configuration;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\CopyTrade;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\History;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Logs;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Trading;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Webhooks;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Metastats\Metrics;
 
 it('exposes focused resource objects from the root client', function (): void {
     $client = new MetaApiClient('test-token');
@@ -25,7 +30,12 @@ it('exposes focused resource objects from the root client', function (): void {
     expect($copyFactory)->toBeInstanceOf(CopyFactory::class);
     expect($copyFactory->configuration())->toBeInstanceOf(Configuration::class);
     expect($copyFactory->copyTrade())->toBeInstanceOf(CopyTrade::class);
+    expect($copyFactory->webhooks())->toBeInstanceOf(Webhooks::class);
+    expect($copyFactory->history())->toBeInstanceOf(History::class);
+    expect($copyFactory->trading())->toBeInstanceOf(Trading::class);
+    expect($copyFactory->logs())->toBeInstanceOf(Logs::class);
     expect($client->metaStats())->toBeInstanceOf(MetaStats::class);
+    expect($client->metaStats()->metricResource())->toBeInstanceOf(Metrics::class);
 });
 
 it('shares injected clients with account resources', function (): void {

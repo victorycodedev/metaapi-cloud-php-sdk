@@ -6,8 +6,10 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use PHPUnit\Framework\Assert;
 use Victorycodedev\MetaapiCloudPhpSdk\AccountApi;
+use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
+use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
 
 expect()->extend('toHaveSentRequest', function (string $method, string $path): void {
     $request = $this->value;
@@ -54,4 +56,32 @@ function metaApiClientWithHistory(array $responses, array &$history = []): MetaA
     ]);
 
     return new MetaApiClient('test-token', $client);
+}
+
+function copyFactoryWithHistory(array $responses, array &$history = []): CopyFactory
+{
+    $mock = new MockHandler($responses);
+    $stack = HandlerStack::create($mock);
+    $stack->push(Middleware::history($history));
+
+    $client = new Client([
+        'handler'     => $stack,
+        'http_errors' => false,
+    ]);
+
+    return new CopyFactory('test-token', 'https://copyfactory-api-v1.new-york.agiliumtrade.ai', $client);
+}
+
+function metaStatsWithHistory(array $responses, array &$history = []): MetaStats
+{
+    $mock = new MockHandler($responses);
+    $stack = HandlerStack::create($mock);
+    $stack->push(Middleware::history($history));
+
+    $client = new Client([
+        'handler'     => $stack,
+        'http_errors' => false,
+    ]);
+
+    return new MetaStats('test-token', 'https://metastats-api-v1.new-york.agiliumtrade.ai', $client);
 }

@@ -44,6 +44,30 @@ For private/custom regions, pass the full service URL:
 $copyFactory = $metaapi->copyFactory(serverUrl: 'https://copyfactory-api-v1.my-region.example.com');
 ```
 
+CopyFactory is organized into resource groups:
+
+```php
+$copyFactory = $metaapi->copyFactory(region: 'london');
+
+$copyFactory->configuration()->strategies();
+$copyFactory->configuration()->portfolioStrategies();
+$copyFactory->webhooks()->create('strategy-id', ['magic' => 100]);
+$copyFactory->history()->providedTransactions([
+    'from' => '2020-04-20T04:00:00.000Z',
+    'till' => '2020-04-20T04:30:00.000Z',
+]);
+$copyFactory->trading()->signals('subscriber-id');
+$copyFactory->logs()->userLog('subscriber-id');
+```
+
+The common older shortcut methods on `CopyFactory` are still available, for example:
+
+```php
+$copyFactory->strategies();
+$copyFactory->subscribers();
+$copyFactory->copy('provider-account-id', 'subscriber-account-id');
+```
+
 You can still use the previous `AccountApi`, `CopyFactory` and `MetaStats` classes directly. `AccountApi` now acts as a backwards-compatible facade over the new account management resources.
 
 ## Account Management
@@ -460,11 +484,10 @@ try {
 
 ## Copy Trade
 
-To Copy a trade from provider to subscriber.
-I recommend you create a strategy before hand and save to your database before you perform a copy trade, but its not compulsory
-as the package will create one for you. You can always read all your strategies in your account with the " $copyfactory->strategies()". 
+This configures CopyFactory to copy trades from a provider account into a subscriber account.
+For production apps, it is best to create and store a strategy id yourself, then pass it into the helper. This avoids extra lookup requests.
 
-To Copy trade do: 
+Fast path:
 
 ```php
 
@@ -473,33 +496,88 @@ try {
     $providerAccountId = "Enter your provider account ID";
     $subAccountId = "Enter Subscriber Account ID";
 
-    return $copyfactory->copy($providerAccountId, $subAccountId, $strategyId);
-
-    /*
-    * You can ommit the strategy Id and just copy the trade 
-    * The package will create a strategy as part of the copy process.
-    */
-
-    return $copyfactory->copy($providerAccountId, $subAccountId);
-
+    return $copyfactory->copyTrade()->configureCopyTrading(
+        providerAccountId: $providerAccountId,
+        subscriberAccountId: $subAccountId,
+        strategyId: $strategyId,
+        strategy: [
+            'name' => 'Main strategy',
+            'description' => 'Copies my main trading account',
+        ],
+        subscription: [
+            'multiplier' => 1,
+        ],
+        subscriber: [
+            'name' => 'Main subscriber',
+        ],
+        validateAccountRoles: false
+    );
 } catch (\Throwable $th) {
     $response = json_decode($th->getMessage());
     return $response->message;
 }
 
 ```
-Note: copying a trade will take some seconds to finish, you you can have a loading indicator as feedback.
+
+You can omit the strategy id. In that case the SDK generates one. It does not list all strategies unless you explicitly ask it to reuse an existing strategy.
+
+```php
+try {
+    return $copyfactory->copyTrade()->configureCopyTrading(
+        providerAccountId: $providerAccountId,
+        subscriberAccountId: $subAccountId
+    );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+If you want the SDK to look for an existing strategy for the provider account first:
+
+```php
+try {
+    return $copyfactory->copyTrade()->configureCopyTrading(
+        providerAccountId: $providerAccountId,
+        subscriberAccountId: $subAccountId,
+        reuseExistingStrategy: true
+    );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+The older shortcut still works:
+
+```php
+try {
+    return $copyfactory->copy($providerAccountId, $subAccountId, $strategyId);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+
+```
 
 ## MetaStats
 
-You can get metrics for you account
+You can get metrics, historical trades, open trades and reset metrics for your account.
 
-You can create an instance of the SDK like so for MetaStats:
+Preferred usage:
+
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
+
+$stats = (new MetaApiClient('AUTH_TOKEN'))->metaStats(region: 'london');
+```
+
+You can also create an instance of the SDK like so for MetaStats:
+
 ```php
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
 
 $stats = new MetaStats('AUTH_TOKEN');
-
 ```
 
 To get metrics: 
@@ -517,6 +595,25 @@ try {
 
 ```
 
+To get historical trades for a MetaApi account:
+
+```php
+try {
+   return $stats->historicalTrades(
+      "accountId",
+      "2020-09-08 22:21:36.000",
+      "2020-09-09 22:21:36.000",
+      [
+          "limit" => 1000,
+          "offset" => 0,
+          "updateHistory" => true,
+      ]
+   );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
 
 To get open trades for MetaApi account:
 
@@ -529,6 +626,17 @@ try {
     return $response->message;
 }
 
+```
+
+To reset metrics and trade history:
+
+```php
+try {
+   return $stats->resetMetrics("accountId");
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
 ```
 
 ## Testing 
@@ -552,7 +660,7 @@ Pull requests are welcome.
 ## How can I thank you?
 Why not star the github repo? I'd love the attention! you can share the link for this repository on Twitter or HackerNews? 
 
-Don't forget to [follow me on twitter!](https://twitter.com/EfekpoguaVicto4)
+Don't forget to [follow me on twitter!](https://x.com/efekpoguavik3)
 
 Thanks! Efekpogua Victory.
 
