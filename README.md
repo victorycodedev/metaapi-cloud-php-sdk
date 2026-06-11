@@ -4,6 +4,11 @@ A PHP Package that let you seamlessly perform api call to Metapapi https://metaa
 NOTE: This package does not include all api calls in Metapi.
 You can do CopyTrade, Account Managment and Metrics.
 
+## Requirements
+
+- PHP 8.2 or newer
+- Guzzle 7
+
 ## Installation
 
 To install the SDK in your project you need to install the package via composer:
@@ -13,6 +18,33 @@ composer require victorycodedev/metaapi-cloud-php-sdk
 ```
 
 ## Usage
+
+The preferred entry point is the root client:
+
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
+
+$metaapi = new MetaApiClient('AUTH_TOKEN');
+
+$accounts = $metaapi->accounts();
+$profiles = $metaapi->provisioningProfiles();
+$replicas = $metaapi->accountReplicas();
+```
+
+Regional APIs default to `new-york` and accept region names directly:
+
+```php
+$copyFactory = $metaapi->copyFactory(region: 'london');
+$metaStats = $metaapi->metaStats(region: 'london');
+```
+
+For private/custom regions, pass the full service URL:
+
+```php
+$copyFactory = $metaapi->copyFactory(serverUrl: 'https://copyfactory-api-v1.my-region.example.com');
+```
+
+You can still use the previous `AccountApi`, `CopyFactory` and `MetaStats` classes directly. `AccountApi` now acts as a backwards-compatible facade over the new account management resources.
 
 ## Account Management
 
@@ -78,6 +110,14 @@ You can read all trading accounts in your metaapi account
 
 try {
     return $account->readAll();
+
+    // You can also pass MetaApi filters and request api-version 2 list responses
+    return $account->accounts([
+        'deploymentStatus' => ['deployed'],
+        'type' => ['cloud-g2'],
+        'limit' => 100,
+        'offset' => 0,
+    ], apiVersion: 2);
 } catch (\Throwable $th) {
     $response = json_decode($th->getMessage());
     return $response->message;
@@ -161,6 +201,107 @@ try {
 }
 
 ```
+
+Enable paid account features or APIs:
+
+```php
+try {
+    return $account->enableFeatures("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", [
+        'metastatsApiEnabled' => true,
+        'riskManagementApiEnabled' => true,
+        'reliabilityIncreased' => true,
+        'allocateDedicatedIp' => 'ipv4',
+        'copyFactoryApi' => [
+            'copyFactoryRoles' => ['PROVIDER'],
+            'copyFactoryResourceSlots' => 1,
+        ],
+    ]);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+Create a secure trading account configuration link:
+
+```php
+try {
+    return $account->createConfigurationLink("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", ttlInDays: 3);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+## Provisioning Profiles
+
+Provisioning profiles are available via the root client or `AccountApi`:
+
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
+
+$profiles = (new MetaApiClient('AUTH_TOKEN'))->provisioningProfiles();
+
+try {
+    $created = $profiles->createProvisioningProfile([
+        'name' => 'ICMarkets MT5',
+        'version' => 5,
+        'brokerTimezone' => 'EET',
+        'brokerDSTSwitchTimezone' => 'EET',
+        'type' => 'mtTerminal',
+    ]);
+
+    $profiles->uploadProvisioningProfileFile($created['id'], 'servers.dat', '/path/to/servers.dat');
+    return $profiles->provisioningProfile($created['id']);
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+Available provisioning profile methods:
+
+- `provisioningProfiles(array $filters = [], ?int $apiVersion = null)`
+- `provisioningProfile(string $profileId)`
+- `createProvisioningProfile(array $data)`
+- `uploadProvisioningProfileFile(string $profileId, string $fileName, string $filePath)`
+- `updateProvisioningProfile(string $profileId, array $data)`
+- `deleteProvisioningProfile(string $profileId)`
+
+## Account Replicas
+
+Account replicas are available via the root client or `AccountApi`:
+
+```php
+$replicas = (new MetaApiClient('AUTH_TOKEN'))->accountReplicas();
+
+try {
+    return $replicas->createReplica(
+        'primary-account-id',
+        [
+            'magic' => 123456,
+            'region' => 'london',
+        ],
+        transactionId: bin2hex(random_bytes(16))
+    );
+} catch (\Throwable $th) {
+    $response = json_decode($th->getMessage());
+    return $response->message;
+}
+```
+
+Available account replica methods:
+
+- `replicas(string $accountId)`
+- `replica(string $accountId, string $replicaId)`
+- `createReplica(string $accountId, array $data, ?string $transactionId = null)`
+- `updateReplica(string $accountId, string $replicaId, array $data)`
+- `undeployReplica(string $accountId, string $replicaId)`
+- `deployReplica(string $accountId, string $replicaId)`
+- `redeployReplica(string $accountId, string $replicaId)`
+- `deleteReplica(string $accountId, string $replicaId)`
+- `generateReplicaCodeSample(string $accountId, string $replicaId, string $platform)`
+- `increaseReplicaReliability(string $accountId, string $replicaId)`
 ## CopyFactory
 
 You can create an instance of the SDK like so for Copyfactory:

@@ -2,14 +2,20 @@
 
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 
-trait Configuration
+use Victorycodedev\MetaapiCloudPhpSdk\Http;
+
+class Configuration
 {
     private string $configUrl = 'users/current/configuration';
+
+    public function __construct(private readonly Http $http)
+    {
+    }
 
     /*
     *   Generates a new strategy id
     */
-    public function generateStrategyId(): array|string
+    public function generateStrategyId(): array|string|null
     {
         return $this->http->get("/{$this->configUrl}/unused-strategy-id");
     }
@@ -17,15 +23,19 @@ trait Configuration
     /*
     *   Returns provider strategies the user has configured
     */
-    public function strategies(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string
+    public function strategies(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string|null
     {
-        return $this->http->get("/{$this->configUrl}/strategies?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
+        return $this->http->get("/{$this->configUrl}/strategies", [
+            'includeRemoved' => $includeRemoved,
+            'limit'          => $limit,
+            'offset'         => $offset,
+        ]);
     }
 
     /*
     *   Returns provider strategy the user has configured by id
     */
-    public function strategy(string $strategyId): array|string
+    public function strategy(string $strategyId): array|string|null
     {
         return $this->http->get("/{$this->configUrl}/strategies/{$strategyId}");
     }
@@ -33,7 +43,7 @@ trait Configuration
     /*
     *   Updates provider strategy
     */
-    public function updateStrategy(string $strategyId, array $data): array|string
+    public function updateStrategy(string $strategyId, array $data): array|string|null
     {
         return $this->http->put("/{$this->configUrl}/strategies/{$strategyId}", $data);
     }
@@ -41,7 +51,7 @@ trait Configuration
     /*
     *   Deletes provider strategy
     */
-    public function removeStrategy(string $strategyId): array|string
+    public function removeStrategy(string $strategyId): array|string|null
     {
         return $this->http->delete("/{$this->configUrl}/strategies/{$strategyId}");
     }
@@ -49,15 +59,19 @@ trait Configuration
     /*
     *   Returns strategy subscribers the current user provides strategies to
     */
-    public function subscribers(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string
+    public function subscribers(bool $includeRemoved = false, int $limit = 1000, int $offset = 0): array|string|null
     {
-        return $this->http->get("/{$this->configUrl}/subscribers?includeRemoved={$includeRemoved}&limit={$limit}&offset={$offset}");
+        return $this->http->get("/{$this->configUrl}/subscribers", [
+            'includeRemoved' => $includeRemoved,
+            'limit'          => $limit,
+            'offset'         => $offset,
+        ]);
     }
 
     /*
     *   Returns CopyFactory subscriber by id
     */
-    public function subscriber(string $subscriberId): array|string
+    public function subscriber(string $subscriberId): array|string|null
     {
         return $this->http->get("/{$this->configUrl}/subscribers/{$subscriberId}");
     }
@@ -66,7 +80,7 @@ trait Configuration
     *   Updates subscriber configuration
     */
 
-    public function updateSubscriber(string $subscriberId, array $data): array|string
+    public function updateSubscriber(string $subscriberId, array $data): array|string|null
     {
         return $this->http->put("/{$this->configUrl}/subscribers/{$subscriberId}", $data);
     }
@@ -74,7 +88,7 @@ trait Configuration
     /*
     *   Deletes subscriber configuration
     */
-    public function removeSubscriber(string $subscriberId): array|string
+    public function removeSubscriber(string $subscriberId): array|string|null
     {
         return $this->http->delete("/{$this->configUrl}/subscribers/{$subscriberId}");
     }
@@ -83,7 +97,7 @@ trait Configuration
     *   Deletes subscription
     */
 
-    public function deleteSubscription(string $subscriberId, string $strategyId): array|string
+    public function deleteSubscription(string $subscriberId, string $strategyId): array|string|null
     {
         return $this->http->delete("/{$this->configUrl}/subscribers/{$subscriberId}/subscriptions/{$strategyId}");
     }

@@ -2,20 +2,16 @@
 
 namespace Victorycodedev\MetaapiCloudPhpSdk;
 
-use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
-use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\BadRequestException;
-use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\ForbiddenRequestException;
-use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\NotFoundException;
-use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\TooManyRequestException;
-use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\UnauthorizedException;
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 
 class Http
 {
-    protected Client $client;
+    protected ClientInterface $client;
 
-    public function __construct(protected string $token, protected string $baseUrl, Client $client = null)
+    public function __construct(protected string $token, protected string $baseUrl, ?ClientInterface $client = null)
     {
         $this->client = $client ?? new Client([
             'base_uri'    => $this->baseUrl,
@@ -28,57 +24,72 @@ class Http
         ]);
     }
 
-    public function get(string $uri): array|string
+    public function get(string $uri, array $query = [], array $headers = []): array|string|null
     {
-        return $this->request('GET', $uri);
+        return $this->request('GET', $uri, ['query' => $query, 'headers' => $headers]);
     }
 
-    public function post(string $uri, array $payload = []): array|string
+    public function post(string $uri, array $payload = [], array $headers = [], array $query = []): array|string|null
     {
-        return $this->request('POST', $uri, $payload);
+        return $this->request('POST', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
     }
 
-    public function put(string $uri, array $payload = []): array|string
+    public function put(string $uri, array $payload = [], array $headers = [], array $query = []): array|string|null
     {
-        return $this->request('PUT', $uri, $payload);
+        return $this->request('PUT', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
     }
 
-    public function delete(string $uri, array $payload = []): array|string
+    public function delete(string $uri, array $query = [], array $headers = []): array|string|null
     {
-        return $this->request('DELETE', $uri, $payload);
+        return $this->request('DELETE', $uri, ['query' => $query, 'headers' => $headers]);
+    }
+
+    public function upload(string $uri, string $filePath, string $fieldName = 'file', array $headers = []): array|string|null
+    {
+        return $this->request('PUT', $uri, [
+            'headers'   => $headers,
+            'multipart' => [
+                [
+                    'name'     => $fieldName,
+                    'contents' => fopen($filePath, 'r'),
+                    'filename' => basename($filePath),
+                ],
+            ],
+        ]);
     }
 
     /**
      *  Send a request to the MetaApi API.
      */
-    public function request(string $verb, string $uri, array $payload = []): array|string
+    public function request(string $verb, string $uri, array $options = []): array|string|null
     {
-        $response = $this->client->request(
-            $verb,
-            $uri,
-            empty($payload) ? [] : ['json' => $payload]
-        );
+        $options = $this->normalizeOptions($options);
+        $response = $this->client->request($verb, $this->resolveUri($uri), $options);
 
         if (!$this->isSuccessful($response)) {
             return $this->handleError($response);
         }
 
+        $body = (string) $response->getBody();
+
+        if ($body === '') {
+            return null;
+        }
+
+        $decoded = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $body;
+        }
+
         if ($response->hasHeader('Retry-After')) {
-            $retryAfter = $response->getHeader('Retry-After')[0];
-            $body = array_merge(json_decode((string) $response->getBody(), true), ['retryAfter' => $retryAfter]);
-            $resBody = json_encode($body);
-        } else {
-            $resBody = (string) $response->getBody();
+            $decoded['retryAfter'] = $response->getHeaderLine('Retry-After');
         }
 
-        if (empty($resBody)) {
-            $resBody = '{"success": true, "message": "Action successful"}';
-        }
-
-        return json_decode($resBody, true) ?: $resBody;
+        return $decoded;
     }
 
-    public function isSuccessful($response): bool
+    public function isSuccessful(?ResponseInterface $response): bool
     {
         if (!$response) {
             return false;
@@ -89,13 +100,52 @@ class Http
 
     public function handleError(ResponseInterface $response): void
     {
-        match ($response->getStatusCode()) {
-            400     => throw new BadRequestException((string) $response->getBody()),
-            401     => throw new UnauthorizedException((string) $response->getBody()),
-            403     => throw new ForbiddenRequestException((string) $response->getBody()),
-            404     => throw new NotFoundException((string) $response->getBody()),
-            429     => throw new TooManyRequestException((string) $response->getBody()),
-            default => throw new Exception((string) $response->getBody()),
-        };
+        $body = (string) $response->getBody();
+        $decoded = json_decode($body, true);
+        $error = json_last_error() === JSON_ERROR_NONE ? $decoded : $body;
+        $message = is_array($error) && isset($error['message']) ? (string) $error['message'] : $body;
+        $code = is_array($error) && isset($error['id']) ? (int) $error['id'] : 0;
+        $statusCode = $response->getStatusCode();
+        $headers = $response->getHeaders();
+
+        throw new MetaApiException($message ?: 'MetaApi request failed', $code, $statusCode, $error, $headers);
+    }
+
+    private function normalizeOptions(array $options): array
+    {
+        foreach (['headers', 'query', 'json'] as $key) {
+            if (isset($options[$key]) && $options[$key] === []) {
+                unset($options[$key]);
+            }
+        }
+
+        if (isset($options['query'])) {
+            $options['query'] = $this->normalizeQuery($options['query']);
+        }
+
+        return $options;
+    }
+
+    private function resolveUri(string $uri): string
+    {
+        if (str_starts_with($uri, 'http://') || str_starts_with($uri, 'https://')) {
+            return $uri;
+        }
+
+        return rtrim($this->baseUrl, '/') . '/' . ltrim($uri, '/');
+    }
+
+    private function normalizeQuery(array $query): array
+    {
+        return array_filter(
+            array_map(function (mixed $value): mixed {
+                if (is_bool($value)) {
+                    return $value ? 'true' : 'false';
+                }
+
+                return $value;
+            }, $query),
+            static fn(mixed $value): bool => $value !== null
+        );
     }
 }
