@@ -364,6 +364,18 @@ $result = $copyFactory->copyTrade()->configureCopyTrading(
 );
 ```
 
+For a quick setup, `copy()` is available as a shortcut:
+
+```php
+$result = $copyFactory->copy(
+    'provider-account-id',
+    'subscriber-account-id',
+    'strategy-id'
+);
+```
+
+The shortcut delegates to `configureCopyTrading()`. Use the full method when you need custom strategy/subscriber payloads, validation control or reuse behavior.
+
 ## MetaStats
 
 ```php
