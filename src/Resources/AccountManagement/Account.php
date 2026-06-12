@@ -6,18 +6,11 @@ use Victorycodedev\MetaapiCloudPhpSdk\Http;
 
 class Account
 {
-    public function __construct(private readonly Http $http)
-    {
-    }
+    public function __construct(private readonly Http $http) {}
 
     public function readById(string $accountId): array|string|null
     {
         return $this->http->get("/users/current/accounts/{$accountId}");
-    }
-
-    public function readAll(array $filters = [], ?int $apiVersion = null): array|string|null
-    {
-        return $this->accounts($filters, $apiVersion);
     }
 
     public function accounts(array $filters = [], ?int $apiVersion = null): array|string|null
@@ -35,7 +28,7 @@ class Account
         return $this->http->put("/users/current/accounts/{$accountId}", $data);
     }
 
-    public function unDeploy(string $accountId, bool $executeForAllReplicas = true): array|string|null
+    public function undeploy(string $accountId, bool $executeForAllReplicas = true): array|string|null
     {
         return $this->http->post(
             "/users/current/accounts/{$accountId}/undeploy",
@@ -51,7 +44,7 @@ class Account
         );
     }
 
-    public function reDeploy(string $accountId, bool $executeForAllReplicas = true): array|string|null
+    public function redeploy(string $accountId, bool $executeForAllReplicas = true): array|string|null
     {
         return $this->http->post(
             "/users/current/accounts/{$accountId}/redeploy",

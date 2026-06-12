@@ -4,9 +4,9 @@ use GuzzleHttp\Psr7\Response;
 
 it('reads provisioning profiles with filters', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(200, [], '[]')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(200, [], '[]')], $history);
 
-    $api->provisioningProfiles([
+    $metaapi->provisioningProfiles()->provisioningProfiles([
         'version' => 5,
         'status'  => 'new',
         'type'    => 'mtTerminal',
@@ -22,9 +22,9 @@ it('reads provisioning profiles with filters', function (): void {
 
 it('creates provisioning profiles', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(201, [], '{"id":"profile-id"}')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{"id":"profile-id"}')], $history);
 
-    $response = $api->createProvisioningProfile([
+    $response = $metaapi->provisioningProfiles()->createProvisioningProfile([
         'name'                     => 'ICMarkets',
         'version'                  => 5,
         'brokerTimezone'           => 'EET',
@@ -37,8 +37,8 @@ it('creates provisioning profiles', function (): void {
 
 it('deletes provisioning profiles', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(204)], $history);
+    $metaapi = metaApiClientWithHistory([new Response(204)], $history);
 
-    expect($api->deleteProvisioningProfile('profile-id'))->toBeNull();
+    expect($metaapi->provisioningProfiles()->deleteProvisioningProfile('profile-id'))->toBeNull();
     expect($history[0]['request'])->toHaveSentRequest('DELETE', '/users/current/provisioning-profiles/profile-id');
 });

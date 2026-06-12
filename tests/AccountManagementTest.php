@@ -4,9 +4,9 @@ use GuzzleHttp\Psr7\Response;
 
 it('reads accounts with filters and api version header', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(200, [], '{"count":0,"items":[]}')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(200, [], '{"count":0,"items":[]}')], $history);
 
-    $api->accounts([
+    $metaapi->accounts()->accounts([
         'deploymentStatus' => ['deployed'],
         'limit'            => 50,
     ], apiVersion: 2);
@@ -21,9 +21,9 @@ it('reads accounts with filters and api version header', function (): void {
 
 it('creates accounts with transaction id headers', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(201, [], '{"id":"account-id","state":"DEPLOYED"}')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{"id":"account-id","state":"DEPLOYED"}')], $history);
 
-    $response = $api->create(['name' => 'Demo', 'server' => 'ICMarketsSC-Demo'], '12345678901234567890123456789012');
+    $response = $metaapi->accounts()->create(['name' => 'Demo', 'server' => 'ICMarketsSC-Demo'], '12345678901234567890123456789012');
 
     expect($response)->toBe(['id' => 'account-id', 'state' => 'DEPLOYED']);
     expect($history[0]['request'])->toHaveSentRequest('POST', '/users/current/accounts');
@@ -32,18 +32,18 @@ it('creates accounts with transaction id headers', function (): void {
 
 it('deletes accounts using the account endpoint', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(204)], $history);
+    $metaapi = metaApiClientWithHistory([new Response(204)], $history);
 
-    expect($api->delete('account-id', true))->toBeNull();
+    expect($metaapi->accounts()->delete('account-id', true))->toBeNull();
     expect($history[0]['request'])->toHaveSentRequest('DELETE', '/users/current/accounts/account-id');
     expect($history[0]['request']->getUri()->getQuery())->toBe('executeForAllReplicas=true');
 });
 
 it('enables account features', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(204)], $history);
+    $metaapi = metaApiClientWithHistory([new Response(204)], $history);
 
-    $api->enableFeatures('account-id', [
+    $metaapi->accounts()->enableFeatures('account-id', [
         'metastatsApiEnabled' => true,
         'reliabilityIncreased' => true,
     ]);
@@ -53,9 +53,9 @@ it('enables account features', function (): void {
 
 it('creates account replicas', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(201, [], '{"id":"replica-id","state":"DEPLOYED"}')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{"id":"replica-id","state":"DEPLOYED"}')], $history);
 
-    $api->createReplica('account-id', ['magic' => 123456, 'region' => 'london'], 'transaction-id');
+    $metaapi->accountReplicas()->createReplica('account-id', ['magic' => 123456, 'region' => 'london'], 'transaction-id');
 
     expect($history[0]['request'])->toHaveSentRequest('POST', '/users/current/accounts/account-id/replicas');
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('transaction-id');

@@ -5,6 +5,7 @@ A modern PHP SDK for selected MetaApi services:
 - MetaTrader account management
 - Provisioning profiles
 - Account replicas
+- MetaApi REST terminal API
 - CopyFactory
 - MetaStats
 
@@ -54,6 +55,7 @@ Regional services default to `new-york` and accept region names:
 
 ```php
 $copyFactory = $metaapi->copyFactory(region: 'london');
+$terminal = $metaapi->terminal(region: 'london');
 $metaStats = $metaapi->metaStats(region: 'london');
 ```
 
@@ -62,6 +64,11 @@ For private/custom regions, pass the service URL:
 ```php
 $copyFactory = $metaapi->copyFactory(
     serverUrl: 'https://copyfactory-api-v1.my-region.example.com'
+);
+
+$terminal = $metaapi->terminal(
+    serverUrl: 'https://mt-client-api-v1.my-region.example.com',
+    marketDataServerUrl: 'https://mt-market-data-client-api-v1.my-region.example.com'
 );
 ```
 
@@ -111,8 +118,8 @@ $accounts->update('account-id', [
 ]);
 
 $accounts->deploy('account-id');
-$accounts->unDeploy('account-id');
-$accounts->reDeploy('account-id');
+$accounts->undeploy('account-id');
+$accounts->redeploy('account-id');
 $accounts->delete('account-id', executeForAllReplicas: true);
 ```
 
@@ -375,6 +382,124 @@ $result = $copyFactory->copy(
 ```
 
 The shortcut delegates to `configureCopyTrading()`. Use the full method when you need custom strategy/subscriber payloads, validation control or reuse behavior.
+
+## MetaApi REST Terminal API
+
+```php
+$terminal = $metaapi->terminal(region: 'london');
+```
+
+The REST terminal API is grouped by resource:
+
+```php
+$terminal->state();
+$terminal->history();
+$terminal->marketData();
+$terminal->margin();
+$terminal->trading();
+$terminal->credits();
+```
+
+Read trading terminal state:
+
+```php
+$accountInformation = $terminal->state()->accountInformation('account-id');
+$positions = $terminal->state()->positions('account-id');
+$position = $terminal->state()->position('account-id', 'position-id');
+$orders = $terminal->state()->orders('account-id');
+$order = $terminal->state()->order('account-id', 'order-id');
+$serverTime = $terminal->state()->serverTime('account-id');
+```
+
+Retrieve historical data:
+
+```php
+$ordersByTicket = $terminal->history()->historyOrdersByTicket('account-id', 'ticket');
+$ordersByPosition = $terminal->history()->historyOrdersByPosition('account-id', 'position-id');
+
+$ordersByTime = $terminal->history()->historyOrdersByTimeRange(
+    'account-id',
+    '2020-09-08 22:21:36.000',
+    '2020-09-09 22:21:36.000',
+    offset: 0,
+    limit: 1000
+);
+
+$dealsByTicket = $terminal->history()->dealsByTicket('account-id', 'ticket');
+$dealsByPosition = $terminal->history()->dealsByPosition('account-id', 'position-id');
+$dealsByTime = $terminal->history()->dealsByTimeRange(
+    'account-id',
+    '2020-09-08 22:21:36.000',
+    '2020-09-09 22:21:36.000'
+);
+```
+
+Retrieve market data:
+
+```php
+$symbols = $terminal->marketData()->symbols('account-id');
+$specification = $terminal->marketData()->symbolSpecification('account-id', 'EURUSD');
+$price = $terminal->marketData()->symbolPrice('account-id', 'EURUSD', keepSubscription: true);
+$candle = $terminal->marketData()->candle('account-id', 'EURUSD', '1m');
+$tick = $terminal->marketData()->tick('account-id', 'EURUSD');
+$book = $terminal->marketData()->orderBook('account-id', 'EURUSD');
+
+$historicalCandles = $terminal->marketData()->historicalCandles(
+    'account-id',
+    'EURUSD',
+    '1m',
+    startTime: '2020-09-08T22:21:36.000Z',
+    limit: 1000
+);
+
+$historicalTicks = $terminal->marketData()->historicalTicks(
+    'account-id',
+    'EURUSD',
+    startTime: '2020-09-08T22:21:36.000Z',
+    offset: 0,
+    limit: 1000
+);
+```
+
+Calculate margin:
+
+```php
+$margin = $terminal->margin()->calculate('account-id', [
+    'symbol' => 'GBPUSD',
+    'type' => 'ORDER_TYPE_BUY',
+    'volume' => 0.1,
+    'openPrice' => 1.25,
+]);
+```
+
+Trade:
+
+```php
+$result = $terminal->trading()->trade('account-id', [
+    'actionType' => 'ORDER_TYPE_BUY',
+    'symbol' => 'EURUSD',
+    'volume' => 0.01,
+    'stopLoss' => 1.09,
+    'takeProfit' => 1.11,
+]);
+
+$terminal->trading()->createMarketBuyOrder('account-id', 'EURUSD', 0.01);
+$terminal->trading()->createMarketSellOrder('account-id', 'EURUSD', 0.01);
+$terminal->trading()->createLimitBuyOrder('account-id', 'EURUSD', 0.01, 1.08);
+$terminal->trading()->createStopSellOrder('account-id', 'EURUSD', 0.01, 1.07);
+$terminal->trading()->createStopLimitBuyOrder('account-id', 'EURUSD', 0.01, 1.08, 1.081);
+$terminal->trading()->modifyPosition('account-id', 'position-id', stopLoss: 1.09);
+$terminal->trading()->closePosition('account-id', 'position-id');
+$terminal->trading()->closePositionPartially('account-id', 'position-id', 0.01);
+$terminal->trading()->closePositionsBySymbol('account-id', 'EURUSD');
+$terminal->trading()->cancelOrder('account-id', 'order-id');
+```
+
+Retrieve CPU credit usage:
+
+```php
+$credits = $terminal->credits()->usage('account-id');
+```
 
 ## MetaStats
 

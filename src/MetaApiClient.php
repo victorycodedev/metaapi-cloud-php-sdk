@@ -16,6 +16,8 @@ class MetaApiClient
     private const REGIONAL_SERVICE_URLS = [
         'copyFactory' => 'https://copyfactory-api-v1.%s.agiliumtrade.ai',
         'metaStats'   => 'https://metastats-api-v1.%s.agiliumtrade.ai',
+        'terminal'    => 'https://mt-client-api-v1.%s.agiliumtrade.ai',
+        'marketData'  => 'https://mt-market-data-client-api-v1.%s.agiliumtrade.ai',
     ];
 
     private Http $accountHttp;
@@ -47,15 +49,6 @@ class MetaApiClient
         return new AccountReplica($this->accountHttp);
     }
 
-    public function accountApi(): AccountApi
-    {
-        return new AccountApi(
-            $this->token,
-            $this->baseUrl('accountManagement', self::DEFAULT_ACCOUNT_MANAGEMENT_URL),
-            $this->client
-        );
-    }
-
     public function copyFactory(?string $region = null, ?string $serverUrl = null): CopyFactory
     {
         return new CopyFactory(
@@ -70,6 +63,16 @@ class MetaApiClient
         return new MetaStats(
             $this->token,
             $serverUrl ?? $this->regionalBaseUrl('metaStats', $region),
+            $this->client
+        );
+    }
+
+    public function terminal(?string $region = null, ?string $serverUrl = null, ?string $marketDataServerUrl = null): TerminalApi
+    {
+        return new TerminalApi(
+            $this->token,
+            $serverUrl ?? $this->regionalBaseUrl('terminal', $region),
+            $marketDataServerUrl ?? $this->regionalBaseUrl('marketData', $region),
             $this->client
         );
     }

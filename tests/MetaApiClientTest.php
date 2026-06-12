@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
+use Victorycodedev\MetaapiCloudPhpSdk\TerminalApi;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Account;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\AccountReplica;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\ProvisioningProfile;
@@ -19,6 +20,10 @@ use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Logs;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Trading;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Webhooks;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Metastats\Metrics;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\Credits;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\Margin;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\MarketData;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\State;
 
 it('exposes focused resource objects from the root client', function (): void {
     $client = new MetaApiClient('test-token');
@@ -36,13 +41,18 @@ it('exposes focused resource objects from the root client', function (): void {
     expect($copyFactory->logs())->toBeInstanceOf(Logs::class);
     expect($client->metaStats())->toBeInstanceOf(MetaStats::class);
     expect($client->metaStats()->metricResource())->toBeInstanceOf(Metrics::class);
+    expect($client->terminal())->toBeInstanceOf(TerminalApi::class);
+    expect($client->terminal()->state())->toBeInstanceOf(State::class);
+    expect($client->terminal()->marketData())->toBeInstanceOf(MarketData::class);
+    expect($client->terminal()->margin())->toBeInstanceOf(Margin::class);
+    expect($client->terminal()->credits())->toBeInstanceOf(Credits::class);
 });
 
 it('shares injected clients with account resources', function (): void {
     $history = [];
-    $api = accountApiWithHistory([new Response(200, [], '[]')], $history);
+    $metaapi = metaApiClientWithHistory([new Response(200, [], '[]')], $history);
 
-    $api->accountResource()->accounts();
+    $metaapi->accounts()->accounts();
 
     expect($history[0]['request'])->toHaveSentRequest('GET', '/users/current/accounts');
 });
@@ -81,6 +91,24 @@ it('resolves MetaStats regional urls', function (): void {
     $client->metaStats(region: 'london')->openTrades('account-id');
 
     expect($httpClient->lastUri)->toBe('https://metastats-api-v1.london.agiliumtrade.ai/users/current/accounts/account-id/open-trades');
+});
+
+it('resolves terminal regional urls', function (): void {
+    $httpClient = new CapturingClient();
+    $client = new MetaApiClient('test-token', $httpClient);
+
+    $client->terminal(region: 'london')->state()->accountInformation('account-id');
+
+    expect($httpClient->lastUri)->toBe('https://mt-client-api-v1.london.agiliumtrade.ai/users/current/accounts/account-id/account-information?refreshTerminalState=false');
+});
+
+it('resolves terminal market data urls separately', function (): void {
+    $httpClient = new CapturingClient();
+    $client = new MetaApiClient('test-token', $httpClient);
+
+    $client->terminal(region: 'london')->marketData()->historicalCandles('account-id', 'EURUSD', '1m');
+
+    expect($httpClient->lastUri)->toBe('https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/account-id/historical-market-data/symbols/EURUSD/timeframes/1m/candles?limit=1000');
 });
 
 class CapturingClient implements ClientInterface

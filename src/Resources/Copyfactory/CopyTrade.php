@@ -3,6 +3,7 @@
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Account;
 
 class CopyTrade
@@ -90,7 +91,17 @@ class CopyTrade
             return;
         }
 
-        throw new \InvalidArgumentException("Account {$accountId} is not a {$role} account. Please specify {$role} copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API");
+        throw new MetaApiException(
+            "Account {$accountId} is not a {$role} account. Please specify {$role} copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API",
+            response: [
+                'error' => 'ValidationError',
+                'message' => "Account {$accountId} is not a {$role} account.",
+                'details' => [
+                    'accountId' => $accountId,
+                    'requiredRole' => $role,
+                ],
+            ]
+        );
     }
 
     private function findStrategyIdForAccount(string $accountId): ?string

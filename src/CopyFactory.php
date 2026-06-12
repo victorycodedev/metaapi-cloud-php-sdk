@@ -34,7 +34,7 @@ class CopyFactory
         $this->serverUrl = $serverUrl ?? $this->serverUrl;
         $this->http = new Http($this->token, $this->serverUrl, $client);
         $this->configuration = new Configuration($this->http);
-        $accounts = new Account(new Http($this->token, AccountApi::DEFAULT_SERVER_URL, $client));
+        $accounts = new Account(new Http($this->token, MetaApiClient::DEFAULT_ACCOUNT_MANAGEMENT_URL, $client));
         $this->copyTrade = new CopyTrade($this->http, $this->configuration, $accounts);
         $this->webhooks = new Webhooks($this->http);
         $this->history = new History($this->http);

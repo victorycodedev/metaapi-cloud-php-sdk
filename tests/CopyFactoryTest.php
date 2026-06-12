@@ -1,6 +1,7 @@
 <?php
 
 use GuzzleHttp\Psr7\Response;
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 
 it('supports portfolio strategy endpoints', function (): void {
     $history = [];
@@ -200,3 +201,14 @@ it('can skip account reads when account data is supplied', function (): void {
     expect($history[1]['request'])->toHaveSentRequest('PUT', '/users/current/configuration/strategies/generated-strategy-id');
     expect($history[2]['request'])->toHaveSentRequest('PUT', '/users/current/configuration/subscribers/subscriber-internal-id');
 });
+
+it('throws MetaApiException for local copy trading validation errors', function (): void {
+    $copyFactory = copyFactoryWithHistory([]);
+
+    $copyFactory->copyTrade()->configureCopyTrading(
+        providerAccountId: 'provider-account-id',
+        subscriberAccountId: 'subscriber-account-id',
+        providerAccount: ['_id' => 'provider-internal-id', 'copyFactoryRoles' => []],
+        subscriberAccount: ['_id' => 'subscriber-internal-id', 'copyFactoryRoles' => ['SUBSCRIBER']]
+    );
+})->throws(MetaApiException::class, 'Account provider-account-id is not a PROVIDER account');
