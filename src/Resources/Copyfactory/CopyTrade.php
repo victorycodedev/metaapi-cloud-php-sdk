@@ -2,75 +2,118 @@
 
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory;
 
-use Victorycodedev\MetaapiCloudPhpSdk\AccountApi;
+use Victorycodedev\MetaapiCloudPhpSdk\Http;
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Account;
 
-trait CopyTrade
+class CopyTrade
 {
-    use Configuration;
+    public function __construct(
+        private readonly Http $http,
+        private readonly Configuration $configuration,
+        private readonly Account $accounts
+    ) {}
 
     /*
-    *   Create actual copy trade in metaapi.cloud
+    *   Configures CopyFactory to copy a provider strategy into a subscriber account.
     */
-    public function copy(string $providerAccount, string $subscriberAccount, string $strategyId = null): array|string
-    {
-        try {
-            $account = new AccountApi($this->token);
-
-            $masterMetaapiAccount = $account->readById($providerAccount);
-            $slaveMetaapiAccount = $account->readById($subscriberAccount);
-
-            if (!in_array('PROVIDER', $masterMetaapiAccount['copyFactoryRoles'])) {
-                $response = "{'message': 'Account {$providerAccount} is not a provider account. Please specify PROVIDER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
-
-                throw new \Exception((string) $response);
-            }
-
-            if (!in_array('SUBSCRIBER', $slaveMetaapiAccount['copyFactoryRoles'])) {
-                $response = "{'message': 'Account {$subscriberAccount} is not a subscriber account. Please specify SUBSCRIBER copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API'}";
-
-                throw new \Exception((string) $response);
-            }
-
-            // get strategy ID
-            if (empty($strategyId)) {
-                $strategies = $this->strategies();
-                $strategy = [];
-
-                foreach ($strategies as $value) {
-                    if ($value['accountId'] == $masterMetaapiAccount['_id']) {
-                        $strategy = $value;
-                        break;
-                    }
-                }
-
-                if (!empty($strategy)) {
-                    $strategyId = $strategy['_id'];
-                } else {
-                    $strategyId = $this->generateStrategyId()['id'];
-                }
-            }
-
-            // create a strategy being copied
-            $this->http->put("/users/current/configuration/strategies/{$strategyId}", [
-                'name'        => 'Test strategy',
-                'description' => 'Some useful description about your strategy',
-                'accountId'   => $masterMetaapiAccount['_id'],
-            ]);
-
-            // create subscriber
-            $this->updateSubscriber($slaveMetaapiAccount['_id'], [
-                'name'          => 'Copy Trade Subscriber',
-                'subscriptions' => [
-                    [
-                        'strategyId' => $strategyId,
-                        'multiplier' => 1,
-                    ],
-                ],
-            ]);
-
-            return  ['message' => 'Copy trade created successfully'];
-        } catch (\Throwable $th) {
-            throw new \Exception($th->getMessage());
+    public function configureCopyTrading(
+        string $providerAccountId,
+        string $subscriberAccountId,
+        ?string $strategyId = null,
+        array $strategy = [],
+        array $subscription = [],
+        array $subscriber = [],
+        bool $validateAccountRoles = true,
+        bool $reuseExistingStrategy = false,
+        ?array $providerAccount = null,
+        ?array $subscriberAccount = null
+    ): array {
+        if ($validateAccountRoles || $reuseExistingStrategy) {
+            $providerAccount ??= $this->accounts->readById($providerAccountId);
         }
+
+        if ($validateAccountRoles) {
+            $subscriberAccount ??= $this->accounts->readById($subscriberAccountId);
+            $this->assertAccountRole($providerAccount, 'PROVIDER', $providerAccountId);
+            $this->assertAccountRole($subscriberAccount, 'SUBSCRIBER', $subscriberAccountId);
+        }
+
+        if ($strategyId === null && $reuseExistingStrategy) {
+            $strategyId = $this->findStrategyIdForAccount($providerAccount['_id'] ?? $providerAccountId);
+        }
+
+        $strategyId ??= $this->configuration->generateStrategyId()['id'];
+        $providerMetaApiAccountId = $providerAccount['_id'] ?? $providerAccountId;
+        $subscriberMetaApiAccountId = $subscriberAccount['_id'] ?? $subscriberAccountId;
+
+        $strategyPayload = array_replace([
+            'name'        => 'CopyFactory strategy',
+            'description' => 'CopyFactory strategy configured by SDK',
+            'accountId'   => $providerMetaApiAccountId,
+        ], $strategy);
+
+        $strategyPayload['accountId'] = $strategyPayload['accountId'] ?? $providerMetaApiAccountId;
+
+        $subscriptionPayload = array_replace([
+            'strategyId' => $strategyId,
+            'multiplier' => 1,
+        ], $subscription);
+
+        $subscriptionPayload['strategyId'] = $subscriptionPayload['strategyId'] ?? $strategyId;
+
+        $subscriberPayload = array_replace([
+            'name'          => 'CopyFactory subscriber',
+            'subscriptions' => [$subscriptionPayload],
+        ], $subscriber);
+
+        $subscriberPayload['subscriptions'] = $subscriberPayload['subscriptions'] ?? [$subscriptionPayload];
+
+        $this->configuration->updateStrategy($strategyId, $strategyPayload);
+        $this->configuration->updateSubscriber($subscriberMetaApiAccountId, $subscriberPayload);
+
+        return [
+            'message'             => 'Copy trading configured successfully',
+            'strategyId'          => $strategyId,
+            'providerAccountId'   => $providerMetaApiAccountId,
+            'subscriberAccountId' => $subscriberMetaApiAccountId,
+        ];
+    }
+
+    public function copy(string $providerAccount, string $subscriberAccount, ?string $strategyId = null): array|string
+    {
+        return $this->configureCopyTrading($providerAccount, $subscriberAccount, $strategyId);
+    }
+
+    private function assertAccountRole(array $account, string $role, string $accountId): void
+    {
+        if (in_array($role, $account['copyFactoryRoles'] ?? [], true)) {
+            return;
+        }
+
+        throw new MetaApiException(
+            "Account {$accountId} is not a {$role} account. Please specify {$role} copyFactoryRoles value in your MetaApi account in order to use it in CopyFactory API",
+            response: [
+                'error' => 'ValidationError',
+                'message' => "Account {$accountId} is not a {$role} account.",
+                'details' => [
+                    'accountId' => $accountId,
+                    'requiredRole' => $role,
+                ],
+            ]
+        );
+    }
+
+    private function findStrategyIdForAccount(string $accountId): ?string
+    {
+        $strategies = $this->configuration->strategies();
+
+        foreach ($strategies as $strategy) {
+            if (($strategy['accountId'] ?? null) === $accountId) {
+                return $strategy['_id'] ?? $strategy['id'] ?? null;
+            }
+        }
+
+        return null;
     }
 }

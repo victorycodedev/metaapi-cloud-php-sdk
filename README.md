@@ -1,420 +1,589 @@
-# Metaapi PHP sdk
+# MetaApi PHP SDK
 
-A PHP Package that let you seamlessly perform api call to Metapapi https://metaapi.cloud/
-NOTE: This package does not include all api calls in Metapi.
-You can do CopyTrade, Account Managment and Metrics.
+A modern PHP SDK for selected MetaApi services:
+
+- MetaTrader account management
+- Provisioning profiles
+- Account replicas
+- MetaApi REST terminal API
+- CopyFactory
+- MetaStats
+
+This package does not yet wrap every MetaApi API, but the exposed services are organized around the current SDK entry point and resource classes.
+
+Real-time streaming/WebSocket support is planned for a future version.
+
+## Requirements
+
+- PHP 8.2 or newer
 
 ## Installation
-
-To install the SDK in your project you need to install the package via composer:
 
 ```bash
 composer require victorycodedev/metaapi-cloud-php-sdk
 ```
 
-## Usage
+## Quick Start
+
+Use `MetaApiClient` as the main SDK entry point:
+
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
+
+$metaapi = new MetaApiClient('AUTH_TOKEN');
+
+try {
+    $accounts = $metaapi->accounts()->accounts([
+        'limit' => 100,
+        'offset' => 0,
+    ]);
+} catch (MetaApiException $exception) {
+    echo $exception->getMessage();
+    echo $exception->statusCode();
+
+    print_r($exception->response());
+}
+```
+
+All failed MetaApi responses throw `MetaApiException`. The exception includes the HTTP status code, parsed MetaApi error response, response headers, error id, error name, details and retry-after header when available.
+
+## Regions
+
+Account Management uses MetaApi's global provisioning URL and does not require a region.
+
+Regional services default to `new-york` and accept region names:
+
+```php
+$copyFactory = $metaapi->copyFactory(region: 'london');
+$terminal = $metaapi->terminal(region: 'london');
+$metaStats = $metaapi->metaStats(region: 'london');
+```
+
+For private/custom regions, pass the service URL:
+
+```php
+$copyFactory = $metaapi->copyFactory(
+    serverUrl: 'https://copyfactory-api-v1.my-region.example.com'
+);
+
+$terminal = $metaapi->terminal(
+    serverUrl: 'https://mt-client-api-v1.my-region.example.com',
+    marketDataServerUrl: 'https://mt-market-data-client-api-v1.my-region.example.com'
+);
+```
 
 ## Account Management
 
-You can create an instance of the SDK like so for Account Management:
 ```php
-use Victorycodedev\MetaapiCloudPhpSdk\AccountApi;
-
-$account = new AccountApi('AUTH_TOKEN');
-
+$accounts = $metaapi->accounts();
 ```
 
-All methods throws exceptions when the request is not successful, so be sure to put your code in a try and catch block.
+Create an account:
 
 ```php
- when statusCode >= 200 && statusCode < 300;
-```
-
-You can add a trading account and starts a cloud API server for the trading account like so:
-
-```php
-
 try {
-    return $account->create([
-        "login" => "123456", 
-        "password" => "password", 
-        "name" => "testAccount", 
-        "server" => "ICMarketsSC-Demo", 
-        "platform" => "mt5", 
-        "magic" => 123456 
+    $account = $accounts->create([
+        'login' => '123456',
+        'password' => 'password',
+        'name' => 'Main MT5 account',
+        'server' => 'ICMarketsSC-Demo',
+        'platform' => 'mt5',
+        'magic' => 123456,
+        'type' => 'cloud-g2',
     ]);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
+} catch (MetaApiException $exception) {
+    echo $exception->getMessage();
 }
-
 ```
-if the request was successful , you will get the the account id and state, else an Exception will be thrown
+
+Read accounts:
 
 ```php
+$allAccounts = $accounts->accounts([
+    'deploymentStatus' => ['deployed'],
+    'type' => ['cloud-g2'],
+    'limit' => 100,
+    'offset' => 0,
+], apiVersion: 2);
+
+$account = $accounts->readById('account-id');
+```
+
+Update and lifecycle operations:
+
+```php
+$accounts->update('account-id', [
+    'name' => 'Updated account name',
+    'password' => 'new-password',
+]);
+
+$accounts->deploy('account-id');
+$accounts->undeploy('account-id');
+$accounts->redeploy('account-id');
+$accounts->delete('account-id', executeForAllReplicas: true);
+```
+
+Enable account features/APIs:
+
+```php
+$accounts->enableFeatures('account-id', [
+    'metastatsApiEnabled' => true,
+    'riskManagementApiEnabled' => true,
+    'reliabilityIncreased' => true,
+    'copyFactoryApi' => [
+        'copyFactoryRoles' => ['PROVIDER'],
+        'copyFactoryResourceSlots' => 1,
+    ],
+]);
+```
+
+Create a secure configuration link:
+
+```php
+$link = $accounts->createConfigurationLink('account-id', ttlInDays: 3);
+```
+
+## Provisioning Profiles
+
+```php
+$profiles = $metaapi->provisioningProfiles();
+```
+
+```php
+$created = $profiles->createProvisioningProfile([
+    'name' => 'ICMarkets MT5',
+    'version' => 5,
+    'brokerTimezone' => 'EET',
+    'brokerDSTSwitchTimezone' => 'EET',
+    'type' => 'mtTerminal',
+]);
+
+$profiles->uploadProvisioningProfileFile(
+    $created['id'],
+    'servers.dat',
+    '/path/to/servers.dat'
+);
+
+$profile = $profiles->provisioningProfile($created['id']);
+```
+
+Available methods:
+
+- `provisioningProfiles(array $filters = [], ?int $apiVersion = null)`
+- `provisioningProfile(string $profileId)`
+- `createProvisioningProfile(array $data)`
+- `uploadProvisioningProfileFile(string $profileId, string $fileName, string $filePath)`
+- `updateProvisioningProfile(string $profileId, array $data)`
+- `deleteProvisioningProfile(string $profileId)`
+
+## Account Replicas
+
+```php
+$replicas = $metaapi->accountReplicas();
+```
+
+```php
+$replica = $replicas->createReplica(
+    'primary-account-id',
     [
-        "id" => "1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", 
-        "state" => "DEPLOYED" 
-    ]
+        'magic' => 123456,
+        'region' => 'london',
+    ],
+    transactionId: bin2hex(random_bytes(16))
+);
 ```
 
-You can read an account by the id
+Available methods:
 
-```php
+- `replicas(string $accountId)`
+- `replica(string $accountId, string $replicaId)`
+- `createReplica(string $accountId, array $data, ?string $transactionId = null)`
+- `updateReplica(string $accountId, string $replicaId, array $data)`
+- `undeployReplica(string $accountId, string $replicaId)`
+- `deployReplica(string $accountId, string $replicaId)`
+- `redeployReplica(string $accountId, string $replicaId)`
+- `deleteReplica(string $accountId, string $replicaId)`
+- `generateReplicaCodeSample(string $accountId, string $replicaId, string $platform)`
+- `increaseReplicaReliability(string $accountId, string $replicaId)`
 
-try {
-     return $account->readById("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-
-You can read all trading accounts in your metaapi account
-
-```php
-
-try {
-    return $account->readAll();
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-You can update an account
-
-```php
-
-try {
-    return  $account->update("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9",[
-        "password" => "password", 
-        "name" => "testAccount", 
-        "server" => "ICMarketsSC-Demo", 
-    ]);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-Undeploy an account
-
-```php
-
-try {
-    return $account->unDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
-    // you can pass other parameters 
-    return $account->unDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-Deploy an account
-
-```php
-
-try {
-    return $account->deploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
-     // you can pass other parameters 
-    return $account->deploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-Redeploy an account
-
-```php
-
-try {
-    return $account->reDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
-     // you can pass other parameters 
-    return $account->reDeploy("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", false);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-Delete an account
-
-```php
-
-try {
-    return $account->delete("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9");
-     // you can pass other parameters 
-    return $account->delete("1eda642a-a9a3-457c-99af-3bc5e8d5c4c9", true);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
 ## CopyFactory
 
-You can create an instance of the SDK like so for Copyfactory:
 ```php
-use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
-
-$copyfactory = new CopyFactory('AUTH_TOKEN');
-
+$copyFactory = $metaapi->copyFactory(region: 'london');
 ```
 
-To generate a strategy id
+CopyFactory is grouped by resource:
 
 ```php
-
-try {
-   return $copyfactory->generateStrategyId();
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$copyFactory->configuration();
+$copyFactory->webhooks();
+$copyFactory->history();
+$copyFactory->trading();
+$copyFactory->logs();
+$copyFactory->copyTrade();
 ```
 
-To get all your strategies 
+Configuration:
 
 ```php
+$strategyId = $copyFactory->configuration()->generateStrategyId();
 
-try {
-   return $copyfactory->strategies();
-    //you can also pass in other parameters like so
-    return $copyfactory->strategies(includeRemoved: true, limit: 1000, offset: 0 );
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
+$strategies = $copyFactory->configuration()->strategies(
+    includeRemoved: false,
+    limit: 1000,
+    offset: 0
+);
 
+$copyFactory->configuration()->updateStrategy('strategy-id', [
+    'name' => 'Main strategy',
+    'description' => 'Copies my main account',
+    'accountId' => 'provider-account-id',
+]);
+
+$copyFactory->configuration()->portfolioStrategies();
+
+$copyFactory->configuration()->updateSubscriber('subscriber-account-id', [
+    'name' => 'Main subscriber',
+    'subscriptions' => [
+        [
+            'strategyId' => 'strategy-id',
+            'multiplier' => 1,
+        ],
+    ],
+]);
 ```
 
-To get a single strategy 
+Webhooks:
 
 ```php
+$copyFactory->webhooks()->create('strategy-id', [
+    'url' => 'https://example.com/copyfactory/webhook',
+]);
 
-try {
-   return $copyfactory->strategy("strategid");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$copyFactory->webhooks()->list('strategy-id');
+$copyFactory->webhooks()->update('strategy-id', 'webhook-id', ['enabled' => true]);
+$copyFactory->webhooks()->remove('strategy-id', 'webhook-id');
 ```
 
-To update a strategy 
+History:
 
 ```php
+$copyFactory->history()->providedTransactions([
+    'from' => '2020-04-20T04:00:00.000Z',
+    'till' => '2020-04-20T04:30:00.000Z',
+]);
 
-try {
-   return $copyfactory->updateStrategy("strategid", [
-        "name" => "Test strategy", 
-        "description" => "Some useful description about your strategy", 
-        "accountId" => "105646d8-8c97-4d4d-9b74-413bd66cd4ed" 
-   ]);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
+$copyFactory->history()->subscriptionTransactions([
+    'from' => '2020-04-20T04:00:00.000Z',
+    'till' => '2020-04-20T04:30:00.000Z',
+]);
 
+$copyFactory->history()->strategyTransactionsStream('strategy-id');
+$copyFactory->history()->subscriberTransactionsStream('subscriber-id');
 ```
 
-To remove a strategy 
+Trading:
 
 ```php
+$copyFactory->trading()->signals('subscriber-id');
+$copyFactory->trading()->externalSignals('strategy-id');
 
-try {
-   return $copyfactory->removeStrategy("strategid");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
+$copyFactory->trading()->updateExternalSignal('strategy-id', 'signal-id', [
+    'symbol' => 'EURUSD',
+]);
 
+$copyFactory->trading()->removeExternalSignal('strategy-id', 'signal-id', [
+    'time' => '2020-08-24T00:00:00.000Z',
+]);
+
+$copyFactory->trading()->stopouts('subscriber-id');
+$copyFactory->trading()->resetSubscriptionStopouts(
+    'subscriber-id',
+    'strategy-id',
+    'day-balance-difference'
+);
+$copyFactory->trading()->resetSubscriberStopouts(
+    'subscriber-id',
+    'day-balance-difference'
+);
+$copyFactory->trading()->stopoutsStream();
+$copyFactory->trading()->resynchronize('subscriber-id');
 ```
 
-To get all your subscribers
+Logs:
 
 ```php
-
-try {
-   return $copyfactory->subscribers();
-    //you can also pass in other parameters like so
-    return $copyfactory->subscribers(includeRemoved: true, limit: 1000, offset: 0 );
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$copyFactory->logs()->userLog('subscriber-id');
+$copyFactory->logs()->userLogStream('subscriber-id');
+$copyFactory->logs()->strategyLog('strategy-id');
+$copyFactory->logs()->strategyLogStream('strategy-id');
 ```
 
-To get a subscriber
+## Configure Copy Trading
+
+This configures CopyFactory to copy trades from a provider account into a subscriber account.
+
+For production apps, create and store a strategy id yourself, then pass it into the helper. This avoids extra lookup requests.
 
 ```php
-
-try {
-   return $copyfactory->subscriber("subscriberiId");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$result = $copyFactory->copyTrade()->configureCopyTrading(
+    providerAccountId: 'provider-account-id',
+    subscriberAccountId: 'subscriber-account-id',
+    strategyId: 'strategy-id',
+    strategy: [
+        'name' => 'Main strategy',
+        'description' => 'Copies my main trading account',
+    ],
+    subscription: [
+        'multiplier' => 1,
+    ],
+    subscriber: [
+        'name' => 'Main subscriber',
+    ],
+    validateAccountRoles: false
+);
 ```
 
-To update a subscriber data
+If you omit `strategyId`, the SDK generates one. It does not list all strategies unless you explicitly enable reuse:
 
 ```php
-
-try {
-   return $copyfactory->updateSubscriber("subsciberId", [
-        'name' => "Copy Trade Subscriber",
-        'subscriptions' => [
-            [
-                'strategyId' => 'dJZq',
-                'multiplier' => 1,
-            ]
-        ]
-    ]);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$result = $copyFactory->copyTrade()->configureCopyTrading(
+    providerAccountId: 'provider-account-id',
+    subscriberAccountId: 'subscriber-account-id',
+    reuseExistingStrategy: true
+);
 ```
 
-To remove a subscriber
+If you already fetched account data, pass it in to skip account reads:
 
 ```php
-
-try {
-   return $copyfactory->removeSubscriber("subsciberId");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$result = $copyFactory->copyTrade()->configureCopyTrading(
+    providerAccountId: 'provider-public-id',
+    subscriberAccountId: 'subscriber-public-id',
+    providerAccount: [
+        '_id' => 'provider-internal-id',
+        'copyFactoryRoles' => ['PROVIDER'],
+    ],
+    subscriberAccount: [
+        '_id' => 'subscriber-internal-id',
+        'copyFactoryRoles' => ['SUBSCRIBER'],
+    ],
+);
 ```
 
-To delete a subscription
+For a quick setup, `copy()` is available as a shortcut:
 
 ```php
-
-try {
-   return $copyfactory->deleteSubscription("subsciberId", "strategyId");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$result = $copyFactory->copy(
+    'provider-account-id',
+    'subscriber-account-id',
+    'strategy-id'
+);
 ```
 
-## Copy Trade
+The shortcut delegates to `configureCopyTrading()`. Use the full method when you need custom strategy/subscriber payloads, validation control or reuse behavior.
 
-To Copy a trade from provider to subscriber.
-I recommend you create a strategy before hand and save to your database before you perform a copy trade, but its not compulsory
-as the package will create one for you. You can always read all your strategies in your account with the " $copyfactory->strategies()". 
-
-To Copy trade do: 
+## MetaApi REST Terminal API
 
 ```php
-
-try {
-    $strategyId = "yd24";
-    $providerAccountId = "Enter your provider account ID";
-    $subAccountId = "Enter Subscriber Account ID";
-
-    return $copyfactory->copy($providerAccountId, $subAccountId, $strategyId);
-
-    /*
-    * You can ommit the strategy Id and just copy the trade 
-    * The package will create a strategy as part of the copy process.
-    */
-
-    return $copyfactory->copy($providerAccountId, $subAccountId);
-
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
+$terminal = $metaapi->terminal(region: 'london');
 ```
-Note: copying a trade will take some seconds to finish, you you can have a loading indicator as feedback.
+
+The REST terminal API is grouped by resource:
+
+```php
+$terminal->state();
+$terminal->history();
+$terminal->marketData();
+$terminal->margin();
+$terminal->trading();
+$terminal->credits();
+```
+
+Read trading terminal state:
+
+```php
+$accountInformation = $terminal->state()->accountInformation('account-id');
+$positions = $terminal->state()->positions('account-id');
+$position = $terminal->state()->position('account-id', 'position-id');
+$orders = $terminal->state()->orders('account-id');
+$order = $terminal->state()->order('account-id', 'order-id');
+$serverTime = $terminal->state()->serverTime('account-id');
+```
+
+Retrieve historical data:
+
+```php
+$ordersByTicket = $terminal->history()->historyOrdersByTicket('account-id', 'ticket');
+$ordersByPosition = $terminal->history()->historyOrdersByPosition('account-id', 'position-id');
+
+$ordersByTime = $terminal->history()->historyOrdersByTimeRange(
+    'account-id',
+    '2020-09-08 22:21:36.000',
+    '2020-09-09 22:21:36.000',
+    offset: 0,
+    limit: 1000
+);
+
+$dealsByTicket = $terminal->history()->dealsByTicket('account-id', 'ticket');
+$dealsByPosition = $terminal->history()->dealsByPosition('account-id', 'position-id');
+$dealsByTime = $terminal->history()->dealsByTimeRange(
+    'account-id',
+    '2020-09-08 22:21:36.000',
+    '2020-09-09 22:21:36.000'
+);
+```
+
+Retrieve market data:
+
+```php
+$symbols = $terminal->marketData()->symbols('account-id');
+$specification = $terminal->marketData()->symbolSpecification('account-id', 'EURUSD');
+$price = $terminal->marketData()->symbolPrice('account-id', 'EURUSD', keepSubscription: true);
+$candle = $terminal->marketData()->candle('account-id', 'EURUSD', '1m');
+$tick = $terminal->marketData()->tick('account-id', 'EURUSD');
+$book = $terminal->marketData()->orderBook('account-id', 'EURUSD');
+
+$historicalCandles = $terminal->marketData()->historicalCandles(
+    'account-id',
+    'EURUSD',
+    '1m',
+    startTime: '2020-09-08T22:21:36.000Z',
+    limit: 1000
+);
+
+$historicalTicks = $terminal->marketData()->historicalTicks(
+    'account-id',
+    'EURUSD',
+    startTime: '2020-09-08T22:21:36.000Z',
+    offset: 0,
+    limit: 1000
+);
+```
+
+Calculate margin:
+
+```php
+$margin = $terminal->margin()->calculate('account-id', [
+    'symbol' => 'GBPUSD',
+    'type' => 'ORDER_TYPE_BUY',
+    'volume' => 0.1,
+    'openPrice' => 1.25,
+]);
+```
+
+Trade:
+
+```php
+$result = $terminal->trading()->trade('account-id', [
+    'actionType' => 'ORDER_TYPE_BUY',
+    'symbol' => 'EURUSD',
+    'volume' => 0.01,
+    'stopLoss' => 1.09,
+    'takeProfit' => 1.11,
+]);
+
+$terminal->trading()->createMarketBuyOrder('account-id', 'EURUSD', 0.01);
+$terminal->trading()->createMarketSellOrder('account-id', 'EURUSD', 0.01);
+$terminal->trading()->createLimitBuyOrder('account-id', 'EURUSD', 0.01, 1.08);
+$terminal->trading()->createStopSellOrder('account-id', 'EURUSD', 0.01, 1.07);
+$terminal->trading()->createStopLimitBuyOrder('account-id', 'EURUSD', 0.01, 1.08, 1.081);
+$terminal->trading()->modifyPosition('account-id', 'position-id', stopLoss: 1.09);
+$terminal->trading()->closePosition('account-id', 'position-id');
+$terminal->trading()->closePositionPartially('account-id', 'position-id', 0.01);
+$terminal->trading()->closePositionsBySymbol('account-id', 'EURUSD');
+$terminal->trading()->cancelOrder('account-id', 'order-id');
+```
+
+Retrieve CPU credit usage:
+
+```php
+$credits = $terminal->credits()->usage('account-id');
+```
 
 ## MetaStats
 
-You can get metrics for you account
-
-You can create an instance of the SDK like so for MetaStats:
 ```php
-use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
-
-$stats = new MetaStats('AUTH_TOKEN');
-
+$stats = $metaapi->metaStats(region: 'london');
 ```
 
-To get metrics: 
+Calculate metrics:
 
 ```php
+$metrics = $stats->metrics('account-id', includeOpenPositions: true);
+```
+
+Get historical trades:
+
+```php
+$trades = $stats->historicalTrades(
+    'account-id',
+    '2020-09-08 22:21:36.000',
+    '2020-09-09 22:21:36.000',
+    [
+        'limit' => 1000,
+        'offset' => 0,
+        'updateHistory' => true,
+    ]
+);
+```
+
+Get open trades:
+
+```php
+$openTrades = $stats->openTrades('account-id');
+```
+
+Reset metrics and trade history:
+
+```php
+$stats->resetMetrics('account-id');
+```
+
+## Error Handling
+
+```php
+use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 
 try {
-   return  $stats->metrics("accountId");
-    //  You can pass a boolean as second parameter if you want to include open positions in your metrics
-     return  $stats->metrics("accountId", true);
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
+    $account = $metaapi->accounts()->readById('account-id');
+} catch (MetaApiException $exception) {
+    echo $exception->getMessage();
+    echo $exception->statusCode();
+    echo $exception->errorName();
 
+    print_r($exception->details());
+    print_r($exception->response());
+}
 ```
 
+## Testing
 
-To get open trades for MetaApi account:
-
-```php
-
-try {
-   return  $stats->openTrades("accountId");
-} catch (\Throwable $th) {
-    $response = json_decode($th->getMessage());
-    return $response->message;
-}
-
-```
-
-## Testing 
-
-```php
-
+```bash
 composer test
-
 ```
 
 ## API Reference
-All API references can be found on Metaapi documentation website. https://metaapi.cloud/
+
+All API references can be found on the MetaApi documentation website: https://metaapi.cloud/
 
 ## Security
+
 If you discover any security related issues, please open an issue.
 
 ## Contributing
 
-Pull requests are welcome. 
+Pull requests are welcome.
 
-## How can I thank you?
-Why not star the github repo? I'd love the attention! you can share the link for this repository on Twitter or HackerNews? 
+## How Can I Thank You?
 
-Don't forget to [follow me on twitter!](https://twitter.com/EfekpoguaVicto4)
+Why not star the GitHub repo? You can also share the link for this repository on Twitter or HackerNews.
+
+Follow me on X: https://x.com/efekpoguavik3
 
 Thanks! Efekpogua Victory.
 
 ## License
 
-The MIT License (MIT). Please see [License File](./LICENSE.md) or more information.
+The MIT License (MIT). Please see [License File](./LICENSE.md) for more information.
