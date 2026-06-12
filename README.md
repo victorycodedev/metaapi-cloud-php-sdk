@@ -11,6 +11,8 @@ A modern PHP SDK for selected MetaApi services:
 
 This package does not yet wrap every MetaApi API, but the exposed services are organized around the current SDK entry point and resource classes.
 
+Real-time streaming/WebSocket support is planned for a future version.
+
 ## Requirements
 
 - PHP 8.2 or newer
