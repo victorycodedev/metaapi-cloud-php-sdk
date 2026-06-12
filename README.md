@@ -14,7 +14,6 @@ This package does not yet wrap every MetaApi API, but the exposed services are o
 ## Requirements
 
 - PHP 8.2 or newer
-- Guzzle 7
 
 ## Installation
 
