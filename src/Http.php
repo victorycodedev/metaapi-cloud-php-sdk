@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
+use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
 
 class Http
 {
@@ -16,11 +17,6 @@ class Http
         $this->client = $client ?? new Client([
             'base_uri'    => $this->baseUrl,
             'http_errors' => false,
-            'headers'     => [
-                'auth-token'    => $this->token,
-                'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json',
-            ],
         ]);
     }
 
@@ -32,6 +28,11 @@ class Http
     public function post(string $uri, array $payload = [], array $headers = [], array $query = []): array|string|null
     {
         return $this->request('POST', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
+    }
+
+    public function postAction(string $uri, array $payload = [], array $headers = [], array $query = []): ActionResponse
+    {
+        return $this->requestAction('POST', $uri, ['json' => $payload, 'headers' => $headers, 'query' => $query]);
     }
 
     public function put(string $uri, array $payload = [], array $headers = [], array $query = []): array|string|null
@@ -94,6 +95,22 @@ class Http
         return $decoded;
     }
 
+    public function requestAction(string $verb, string $uri, array $options = []): ActionResponse
+    {
+        $options = $this->normalizeOptions($options);
+        $response = $this->client->request($verb, $this->resolveUri($uri), $options);
+
+        if (!$this->isSuccessful($response)) {
+            return $this->handleError($response);
+        }
+
+        return new ActionResponse(
+            $this->decodeBody($response),
+            $response->getStatusCode(),
+            $response->getHeaders()
+        );
+    }
+
     public function isSuccessful(?ResponseInterface $response): bool
     {
         if (!$response) {
@@ -118,6 +135,11 @@ class Http
 
     private function normalizeOptions(array $options): array
     {
+        $options['headers'] = array_merge(
+            $this->defaultHeaders($options),
+            $options['headers'] ?? []
+        );
+
         foreach (['headers', 'query', 'json'] as $key) {
             if (isset($options[$key]) && $options[$key] === []) {
                 unset($options[$key]);
@@ -129,6 +151,20 @@ class Http
         }
 
         return $options;
+    }
+
+    private function defaultHeaders(array $options): array
+    {
+        $headers = [
+            'auth-token' => $this->token,
+            'Accept' => 'application/json',
+        ];
+
+        if (array_key_exists('json', $options)) {
+            $headers['Content-Type'] = 'application/json';
+        }
+
+        return $headers;
     }
 
     private function resolveUri(string $uri): string
@@ -152,5 +188,22 @@ class Http
             }, $query),
             static fn(mixed $value): bool => $value !== null
         );
+    }
+
+    private function decodeBody(ResponseInterface $response): array|string|null
+    {
+        $body = (string) $response->getBody();
+
+        if ($body === '') {
+            return null;
+        }
+
+        $decoded = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $body;
+        }
+
+        return $decoded;
     }
 }
