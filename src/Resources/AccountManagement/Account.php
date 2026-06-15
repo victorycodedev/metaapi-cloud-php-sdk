@@ -3,6 +3,7 @@
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement;
 
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
+use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
 
 class Account
 {
@@ -18,9 +19,9 @@ class Account
         return $this->http->get('/users/current/accounts', $filters, $this->apiVersionHeader($apiVersion));
     }
 
-    public function create(array $data, ?string $transactionId = null): array|string|null
+    public function create(array $data, ?string $transactionId = null): ActionResponse
     {
-        return $this->http->post('/users/current/accounts', $data, $this->transactionHeader($transactionId));
+        return $this->http->postAction('/users/current/accounts', $data, $this->transactionHeader($transactionId));
     }
 
     public function update(string $accountId, array $data): array|string|null

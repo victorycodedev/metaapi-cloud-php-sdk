@@ -1,6 +1,7 @@
 <?php
 
 use GuzzleHttp\Psr7\Response;
+use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
 
 it('reads accounts with filters and api version header', function (): void {
     $history = [];
@@ -25,9 +26,30 @@ it('creates accounts with transaction id headers', function (): void {
 
     $response = $metaapi->accounts()->create(['name' => 'Demo', 'server' => 'ICMarketsSC-Demo'], '12345678901234567890123456789012');
 
-    expect($response)->toBe(['id' => 'account-id', 'state' => 'DEPLOYED']);
+    expect($response)->toBeInstanceOf(ActionResponse::class);
+    expect($response->body())->toBe(['id' => 'account-id', 'state' => 'DEPLOYED']);
+    expect($response->statusCode())->toBe(201);
+    expect($response->isCreated())->toBeTrue();
+    expect($response->isAccepted())->toBeFalse();
+    expect($response->shouldRetry())->toBeFalse();
+    expect($response->id())->toBe('account-id');
+    expect($response->state())->toBe('DEPLOYED');
     expect($history[0]['request'])->toHaveSentRequest('POST', '/users/current/accounts');
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('12345678901234567890123456789012');
+});
+
+it('exposes accepted account creation retry metadata', function (): void {
+    $metaapi = metaApiClientWithHistory([
+        new Response(202, ['Retry-After' => '10'], '{"id":"account-id","state":"DRAFT"}'),
+    ]);
+
+    $response = $metaapi->accounts()->create(['name' => 'Demo']);
+
+    expect($response->isAccepted())->toBeTrue();
+    expect($response->shouldRetry())->toBeTrue();
+    expect($response->retryAfter())->toBe('10');
+    expect($response->id())->toBe('account-id');
+    expect($response->state())->toBe('DRAFT');
 });
 
 it('deletes accounts using the account endpoint', function (): void {
@@ -55,8 +77,25 @@ it('creates account replicas', function (): void {
     $history = [];
     $metaapi = metaApiClientWithHistory([new Response(201, [], '{"id":"replica-id","state":"DEPLOYED"}')], $history);
 
-    $metaapi->accountReplicas()->createReplica('account-id', ['magic' => 123456, 'region' => 'london'], 'transaction-id');
+    $response = $metaapi->accountReplicas()->createReplica('account-id', ['magic' => 123456, 'region' => 'london'], 'transaction-id');
 
+    expect($response)->toBeInstanceOf(ActionResponse::class);
+    expect($response->isCreated())->toBeTrue();
+    expect($response->id())->toBe('replica-id');
     expect($history[0]['request'])->toHaveSentRequest('POST', '/users/current/accounts/account-id/replicas');
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('transaction-id');
+});
+
+it('exposes accepted account replica creation retry metadata', function (): void {
+    $metaapi = metaApiClientWithHistory([
+        new Response(202, ['Retry-After' => '15'], '{"id":"replica-id","state":"DRAFT"}'),
+    ]);
+
+    $response = $metaapi->accountReplicas()->createReplica('account-id', ['magic' => 123456]);
+
+    expect($response->isAccepted())->toBeTrue();
+    expect($response->shouldRetry())->toBeTrue();
+    expect($response->retryAfter())->toBe('15');
+    expect($response->id())->toBe('replica-id');
+    expect($response->state())->toBe('DRAFT');
 });

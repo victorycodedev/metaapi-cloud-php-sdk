@@ -3,12 +3,11 @@
 namespace Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement;
 
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
+use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
 
 class AccountReplica
 {
-    public function __construct(private readonly Http $http)
-    {
-    }
+    public function __construct(private readonly Http $http) {}
 
     public function replicas(string $accountId): array|string|null
     {
@@ -20,9 +19,9 @@ class AccountReplica
         return $this->http->get("/users/current/accounts/{$accountId}/replicas/{$replicaId}");
     }
 
-    public function createReplica(string $accountId, array $data, ?string $transactionId = null): array|string|null
+    public function createReplica(string $accountId, array $data, ?string $transactionId = null): ActionResponse
     {
-        return $this->http->post(
+        return $this->http->postAction(
             "/users/current/accounts/{$accountId}/replicas",
             $data,
             $transactionId ? ['transaction-id' => $transactionId] : []

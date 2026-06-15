@@ -48,6 +48,8 @@ try {
 
 All failed MetaApi responses throw `MetaApiException`. The exception includes the HTTP status code, parsed MetaApi error response, response headers, error id, error name, details and retry-after header when available.
 
+The SDK applies MetaApi authentication headers automatically, including when you inject a custom Guzzle client.
+
 ## Regions
 
 Account Management uses MetaApi's global provisioning URL and does not require a region.
@@ -83,7 +85,7 @@ Create an account:
 
 ```php
 try {
-    $account = $accounts->create([
+    $response = $accounts->create([
         'login' => '123456',
         'password' => 'password',
         'name' => 'Main MT5 account',
@@ -92,9 +94,31 @@ try {
         'magic' => 123456,
         'type' => 'cloud-g2',
     ]);
+
+    if ($response->isCreated()) {
+        echo "Account created: " . $response->id();
+    }
+
+    if ($response->isAccepted()) {
+        echo "Account creation accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
+    }
 } catch (MetaApiException $exception) {
     echo $exception->getMessage();
 }
+```
+
+`accounts()->create()` returns an `ActionResponse` because MetaApi can respond with `201 Created` or `202 Accepted`.
+
+```php
+$response->body();
+$response->statusCode();
+$response->headers();
+$response->retryAfter();
+$response->isCreated();
+$response->isAccepted();
+$response->shouldRetry();
+$response->id();
+$response->state();
 ```
 
 Read accounts:
@@ -184,7 +208,7 @@ $replicas = $metaapi->accountReplicas();
 ```
 
 ```php
-$replica = $replicas->createReplica(
+$response = $replicas->createReplica(
     'primary-account-id',
     [
         'magic' => 123456,
@@ -192,13 +216,17 @@ $replica = $replicas->createReplica(
     ],
     transactionId: bin2hex(random_bytes(16))
 );
+
+if ($response->shouldRetry()) {
+    echo "Replica creation accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
+}
 ```
 
 Available methods:
 
 - `replicas(string $accountId)`
 - `replica(string $accountId, string $replicaId)`
-- `createReplica(string $accountId, array $data, ?string $transactionId = null)`
+- `createReplica(string $accountId, array $data, ?string $transactionId = null)` returns `ActionResponse`
 - `updateReplica(string $accountId, string $replicaId, array $data)`
 - `undeployReplica(string $accountId, string $replicaId)`
 - `deployReplica(string $accountId, string $replicaId)`

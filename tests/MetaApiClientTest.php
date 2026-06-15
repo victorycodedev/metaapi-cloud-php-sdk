@@ -115,6 +115,8 @@ class CapturingClient implements ClientInterface
 {
     public string $lastUri = '';
 
+    public array $lastOptions = [];
+
     public function send(RequestInterface $request, array $options = []): ResponseInterface
     {
         $this->lastUri = (string) $request->getUri();
@@ -131,6 +133,7 @@ class CapturingClient implements ClientInterface
     {
         $query = isset($options['query']) ? '?' . http_build_query($options['query']) : '';
         $this->lastUri = (string) $uri . $query;
+        $this->lastOptions = $options;
 
         return new Response(200, [], '[]');
     }
