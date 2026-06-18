@@ -5,6 +5,10 @@ A modern PHP SDK for selected MetaApi services:
 - MetaTrader account management
 - Provisioning profiles
 - Account replicas
+- MT4/MT5 demo accounts
+- Expert advisors
+- User quota management
+- Known trading servers
 - MetaApi REST terminal API
 - CopyFactory
 - MetaStats
@@ -214,13 +218,14 @@ $response = $replicas->createReplica(
         'magic' => 123456,
         'region' => 'london',
     ],
-    transactionId: bin2hex(random_bytes(16))
 );
 
 if ($response->shouldRetry()) {
     echo "Replica creation accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
 }
 ```
+
+A transaction ID is auto-generated. Pass your own `transactionId` to retry an accepted request.
 
 Available methods:
 
@@ -234,6 +239,148 @@ Available methods:
 - `deleteReplica(string $accountId, string $replicaId)`
 - `generateReplicaCodeSample(string $accountId, string $replicaId, string $platform)`
 - `increaseReplicaReliability(string $accountId, string $replicaId)`
+
+## Demo Accounts
+
+```php
+$demoAccounts = $metaapi->demoAccounts();
+```
+
+Create a MetaTrader 4 demo account:
+
+```php
+$response = $demoAccounts->createMT4DemoAccount(
+    'provisioning-profile-id',
+    [
+        'accountType' => 'type',
+        'balance' => 1000,
+        'email' => 'user@example.com',
+        'leverage' => 10,
+        'name' => 'Test User',
+        'phone' => '+12345678901',
+        'serverName' => 'Example-Server',
+        'keywords' => ['Example Broker Ltd'],
+    ],
+);
+
+if ($response->isCreated()) {
+    echo "Demo account created. Login: " . $response->body()['login'];
+}
+
+if ($response->shouldRetry()) {
+    echo "Request accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
+}
+```
+
+A transaction ID is auto-generated for you. You can also pass your own if you need to retry an accepted request:
+
+```php
+$response = $demoAccounts->createMT4DemoAccount(
+    'provisioning-profile-id',
+    [...],
+    transactionId: 'my-custom-32-char-transaction-id'
+);
+```
+
+Create a MetaTrader 5 demo account:
+
+```php
+$response = $demoAccounts->createMT5DemoAccount(
+    'provisioning-profile-id',
+    [
+        'accountType' => 'type',
+        'balance' => 1000,
+        'email' => 'user@example.com',
+        'leverage' => 10,
+        'name' => 'Test User',
+        'phone' => '+12345678901',
+        'serverName' => 'Example-Server',
+        'keywords' => ['Example Broker Ltd'],
+    ],
+);
+```
+
+Both methods return `ActionResponse` — the same type used by `accounts()->create()`.
+
+## Expert Advisors
+
+```php
+$eas = $metaapi->expertAdvisors();
+```
+
+```php
+// List all expert advisors on an account
+$advisors = $eas->expertAdvisors('account-id');
+
+// Read a specific expert advisor
+$advisor = $eas->expertAdvisor('account-id', 'expert-id');
+
+// Update or create an expert advisor
+$eas->updateExpertAdvisor('account-id', 'expert-id', [
+    'symbol' => 'EURUSD',
+    'period' => '1H',
+    'preset' => 'base64-encoded-preset',
+]);
+
+// Upload an expert advisor file
+$eas->uploadExpertAdvisorFile('account-id', 'expert-id', '/path/to/expert.ex5');
+
+// Delete an expert advisor
+$eas->deleteExpertAdvisor('account-id', 'expert-id');
+```
+
+Available methods:
+
+- `expertAdvisors(string $accountId)`
+- `expertAdvisor(string $accountId, string $expertId)`
+- `updateExpertAdvisor(string $accountId, string $expertId, array $data)`
+- `uploadExpertAdvisorFile(string $accountId, string $expertId, string $filePath)`
+- `deleteExpertAdvisor(string $accountId, string $expertId)`
+
+## Quota
+
+```php
+$quota = $metaapi->quotas();
+```
+
+```php
+// Get user quota and usage for all regions
+$quotas = $quota->quotas();
+
+// Get quota update requests
+$updateRequests = $quota->quotaUpdateRequests();
+
+// Request a region quota update
+$quota->requestRegionQuotaUpdate('vint-hill', [
+    'maxAccounts' => 150,
+    'maxDeployedG1Accounts' => 25,
+    'maxDeployedG2Accounts' => 120,
+    'maxDeployedCopyFactoryAccounts' => 120,
+    'maxDedicatedIpv4' => 100,
+    'justification' => 'quota update request justification message',
+]);
+```
+
+Available methods:
+
+- `quotas()`
+- `quotaUpdateRequests()`
+- `requestRegionQuotaUpdate(string $region, array $data)`
+
+## Mt Servers
+
+```php
+$mtServers = $metaapi->mtServers();
+```
+
+```php
+// Search known trading servers by MT version
+$servers = $mtServers->knownTradingServers(5, 'icmarketssc');
+```
+
+Available methods:
+
+- `knownTradingServers(int $version, string $query)`
 
 ## CopyFactory
 

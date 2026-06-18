@@ -5,7 +5,11 @@ namespace Victorycodedev\MetaapiCloudPhpSdk;
 use GuzzleHttp\ClientInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Account;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\AccountReplica;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\DemoAccount;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\ExpertAdvisor;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\MtServer;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\ProvisioningProfile;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Quota;
 
 class MetaApiClient
 {
@@ -47,6 +51,26 @@ class MetaApiClient
     public function accountReplicas(): AccountReplica
     {
         return new AccountReplica($this->accountHttp);
+    }
+
+    public function demoAccounts(): DemoAccount
+    {
+        return new DemoAccount($this->accountHttp);
+    }
+
+    public function expertAdvisors(): ExpertAdvisor
+    {
+        return new ExpertAdvisor($this->accountHttp);
+    }
+
+    public function quotas(): Quota
+    {
+        return new Quota($this->accountHttp);
+    }
+
+    public function mtServers(): MtServer
+    {
+        return new MtServer($this->accountHttp);
     }
 
     public function copyFactory(?string $region = null, ?string $serverUrl = null): CopyFactory
