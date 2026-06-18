@@ -4,6 +4,8 @@ namespace Victorycodedev\MetaapiCloudPhpSdk;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
@@ -70,10 +72,10 @@ class Http
     public function request(string $verb, string $uri, array $options = []): array|string|null
     {
         $options = $this->normalizeOptions($options);
-        $response = $this->client->request($verb, $this->resolveUri($uri), $options);
+        $response = $this->send($verb, $uri, $options);
 
         if (!$this->isSuccessful($response)) {
-            return $this->handleError($response);
+            $this->handleError($response);
         }
 
         $body = (string) $response->getBody();
@@ -98,10 +100,10 @@ class Http
     public function requestAction(string $verb, string $uri, array $options = []): ActionResponse
     {
         $options = $this->normalizeOptions($options);
-        $response = $this->client->request($verb, $this->resolveUri($uri), $options);
+        $response = $this->send($verb, $uri, $options);
 
         if (!$this->isSuccessful($response)) {
-            return $this->handleError($response);
+            $this->handleError($response);
         }
 
         return new ActionResponse(
@@ -135,6 +137,7 @@ class Http
 
     private function normalizeOptions(array $options): array
     {
+        $options['http_errors'] = false;
         $options['headers'] = array_merge(
             $this->defaultHeaders($options),
             $options['headers'] ?? []
@@ -151,6 +154,30 @@ class Http
         }
 
         return $options;
+    }
+
+    private function send(string $verb, string $uri, array $options): ResponseInterface
+    {
+        try {
+            return $this->client->request($verb, $this->resolveUri($uri), $options);
+        } catch (RequestException $exception) {
+            if ($exception->hasResponse()) {
+                $this->handleError($exception->getResponse());
+            }
+
+            throw $this->transportException($exception);
+        } catch (GuzzleException $exception) {
+            throw $this->transportException($exception);
+        }
+    }
+
+    private function transportException(GuzzleException $exception): MetaApiException
+    {
+        return new MetaApiException(
+            $exception->getMessage() ?: 'Unable to connect to MetaApi',
+            (int) $exception->getCode(),
+            previous: $exception
+        );
     }
 
     private function defaultHeaders(array $options): array

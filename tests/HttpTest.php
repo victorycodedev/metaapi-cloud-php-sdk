@@ -1,6 +1,10 @@
 <?php
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Victorycodedev\MetaapiCloudPhpSdk\Exceptions\MetaApiException;
 use Victorycodedev\MetaapiCloudPhpSdk\Responses\ActionResponse;
@@ -109,6 +113,15 @@ it('throws structured MetaApi exceptions', function (): void {
         expect($exception->errorName())->toBe('ValidationError');
         expect($exception->details())->toBe(['code' => 'E_AUTH']);
         expect($exception->getMessage())->toBe('Invalid account');
+        expect($exception->id())->toBe(1);
+        expect($exception->error())->toBe('ValidationError');
+        expect($exception->message())->toBe('Invalid account');
+        expect($exception->toArray())->toBe([
+            'id' => 1,
+            'error' => 'ValidationError',
+            'message' => 'Invalid account',
+            'details' => ['code' => 'E_AUTH'],
+        ]);
 
         return;
     }
@@ -123,4 +136,44 @@ it('exposes retry-after headers on rate limit errors', function (): void {
 
     expect(fn () => $http->get('/users/current/accounts'))
         ->toThrow(MetaApiException::class, 'Too many requests');
+});
+
+it('converts response errors from custom clients into MetaApiException', function (): void {
+    $mock = new MockHandler([
+        new Response(400, [], '{"id":2,"error":"ValidationError","message":"Invalid server"}'),
+    ]);
+    $client = new Client([
+        'handler' => HandlerStack::create($mock),
+        'http_errors' => true,
+    ]);
+    $http = new \Victorycodedev\MetaapiCloudPhpSdk\Http('test-token', 'https://example.test', $client);
+
+    expect(fn () => $http->get('/users/current/accounts'))
+        ->toThrow(MetaApiException::class, 'Invalid server');
+});
+
+it('wraps transport failures in MetaApiException', function (): void {
+    $request = new Request('GET', 'https://example.test/users/current/accounts');
+    $transportError = new ConnectException('Connection failed', $request);
+    $mock = new MockHandler([$transportError]);
+    $client = new Client(['handler' => HandlerStack::create($mock)]);
+    $http = new \Victorycodedev\MetaapiCloudPhpSdk\Http('test-token', 'https://example.test', $client);
+
+    try {
+        $http->get('/users/current/accounts');
+    } catch (MetaApiException $exception) {
+        expect($exception->message())->toBe('Connection failed');
+        expect($exception->statusCode())->toBe(0);
+        expect($exception->getPrevious())->toBe($transportError);
+        expect($exception->toArray())->toBe([
+            'id' => null,
+            'error' => null,
+            'message' => 'Connection failed',
+            'details' => null,
+        ]);
+
+        return;
+    }
+
+    $this->fail('Expected MetaApiException to be thrown.');
 });
