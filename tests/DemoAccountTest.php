@@ -53,6 +53,30 @@ it('creates mt5 demo account with transaction id header', function (): void {
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('transaction-id-1234567890123456');
 });
 
+it('auto-generates transaction id for mt4 demo account when not provided', function (): void {
+    $history = [];
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{}')], $history);
+
+    $metaapi->demoAccounts()->createMT4DemoAccount('profile-id', []);
+
+    $transactionId = $history[0]['request']->getHeaderLine('transaction-id');
+    expect($transactionId)->not->toBeEmpty();
+    expect(strlen($transactionId))->toBe(32);
+    expect(ctype_xdigit($transactionId))->toBeTrue();
+});
+
+it('auto-generates transaction id for mt5 demo account when not provided', function (): void {
+    $history = [];
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{}')], $history);
+
+    $metaapi->demoAccounts()->createMT5DemoAccount('profile-id', []);
+
+    $transactionId = $history[0]['request']->getHeaderLine('transaction-id');
+    expect($transactionId)->not->toBeEmpty();
+    expect(strlen($transactionId))->toBe(32);
+    expect(ctype_xdigit($transactionId))->toBeTrue();
+});
+
 it('exposes accepted demo account creation retry metadata', function (): void {
     $metaapi = metaApiClientWithHistory([
         new Response(202, ['Retry-After' => '10'], '{"id":"request-id","state":"DRAFT"}'),

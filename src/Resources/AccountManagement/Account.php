@@ -89,7 +89,7 @@ class Account
 
     private function transactionHeader(?string $transactionId): array
     {
-        return $transactionId ? ['transaction-id' => $transactionId] : [];
+        return ['transaction-id' => $transactionId ?? bin2hex(random_bytes(16))];
     }
 
     private function apiVersionHeader(?int $apiVersion): array

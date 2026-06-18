@@ -24,8 +24,13 @@ class AccountReplica
         return $this->http->postAction(
             "/users/current/accounts/{$accountId}/replicas",
             $data,
-            $transactionId ? ['transaction-id' => $transactionId] : []
+            $this->transactionHeader($transactionId)
         );
+    }
+
+    private function transactionHeader(?string $transactionId): array
+    {
+        return ['transaction-id' => $transactionId ?? bin2hex(random_bytes(16))];
     }
 
     public function updateReplica(string $accountId, string $replicaId, array $data): array|string|null

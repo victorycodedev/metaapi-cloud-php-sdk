@@ -38,6 +38,18 @@ it('creates accounts with transaction id headers', function (): void {
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('12345678901234567890123456789012');
 });
 
+it('auto-generates transaction id for account create when not provided', function (): void {
+    $history = [];
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{}')], $history);
+
+    $metaapi->accounts()->create(['name' => 'Demo']);
+
+    $transactionId = $history[0]['request']->getHeaderLine('transaction-id');
+    expect($transactionId)->not->toBeEmpty();
+    expect(strlen($transactionId))->toBe(32);
+    expect(ctype_xdigit($transactionId))->toBeTrue();
+});
+
 it('exposes accepted account creation retry metadata', function (): void {
     $metaapi = metaApiClientWithHistory([
         new Response(202, ['Retry-After' => '10'], '{"id":"account-id","state":"DRAFT"}'),
@@ -84,6 +96,18 @@ it('creates account replicas', function (): void {
     expect($response->id())->toBe('replica-id');
     expect($history[0]['request'])->toHaveSentRequest('POST', '/users/current/accounts/account-id/replicas');
     expect($history[0]['request']->getHeaderLine('transaction-id'))->toBe('transaction-id');
+});
+
+it('auto-generates transaction id for replica create when not provided', function (): void {
+    $history = [];
+    $metaapi = metaApiClientWithHistory([new Response(201, [], '{}')], $history);
+
+    $metaapi->accountReplicas()->createReplica('account-id', ['magic' => 123456]);
+
+    $transactionId = $history[0]['request']->getHeaderLine('transaction-id');
+    expect($transactionId)->not->toBeEmpty();
+    expect(strlen($transactionId))->toBe(32);
+    expect(ctype_xdigit($transactionId))->toBeTrue();
 });
 
 it('exposes accepted account replica creation retry metadata', function (): void {

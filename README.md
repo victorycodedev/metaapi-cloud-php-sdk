@@ -218,13 +218,14 @@ $response = $replicas->createReplica(
         'magic' => 123456,
         'region' => 'london',
     ],
-    transactionId: bin2hex(random_bytes(16))
 );
 
 if ($response->shouldRetry()) {
     echo "Replica creation accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
 }
 ```
+
+A transaction ID is auto-generated. Pass your own `transactionId` to retry an accepted request.
 
 Available methods:
 
@@ -260,7 +261,6 @@ $response = $demoAccounts->createMT4DemoAccount(
         'serverName' => 'Example-Server',
         'keywords' => ['Example Broker Ltd'],
     ],
-    transactionId: bin2hex(random_bytes(16))
 );
 
 if ($response->isCreated()) {
@@ -270,6 +270,16 @@ if ($response->isCreated()) {
 if ($response->shouldRetry()) {
     echo "Request accepted. Retry after: " . ($response->retryAfter() ?? 'not specified');
 }
+```
+
+A transaction ID is auto-generated for you. You can also pass your own if you need to retry an accepted request:
+
+```php
+$response = $demoAccounts->createMT4DemoAccount(
+    'provisioning-profile-id',
+    [...],
+    transactionId: 'my-custom-32-char-transaction-id'
+);
 ```
 
 Create a MetaTrader 5 demo account:
@@ -287,7 +297,6 @@ $response = $demoAccounts->createMT5DemoAccount(
         'serverName' => 'Example-Server',
         'keywords' => ['Example Broker Ltd'],
     ],
-    transactionId: bin2hex(random_bytes(16))
 );
 ```
 
