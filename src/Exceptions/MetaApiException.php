@@ -35,16 +35,31 @@ class MetaApiException extends Exception
 
     public function errorId(): ?int
     {
+        return $this->id();
+    }
+
+    public function errorName(): ?string
+    {
+        return $this->error();
+    }
+
+    public function id(): ?int
+    {
         return is_array($this->response) && isset($this->response['id'])
             ? (int) $this->response['id']
             : null;
     }
 
-    public function errorName(): ?string
+    public function error(): ?string
     {
         return is_array($this->response) && isset($this->response['error'])
             ? (string) $this->response['error']
             : null;
+    }
+
+    public function message(): string
+    {
+        return $this->getMessage();
     }
 
     public function details(): mixed
@@ -57,5 +72,15 @@ class MetaApiException extends Exception
     public function retryAfter(): ?string
     {
         return $this->headers['Retry-After'][0] ?? $this->headers['retry-after'][0] ?? null;
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id(),
+            'error' => $this->error(),
+            'message' => $this->message(),
+            'details' => $this->details(),
+        ];
     }
 }
