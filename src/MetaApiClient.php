@@ -22,6 +22,8 @@ class MetaApiClient
         'metaStats'   => 'https://metastats-api-v1.%s.agiliumtrade.ai',
         'terminal'    => 'https://mt-client-api-v1.%s.agiliumtrade.ai',
         'marketData'  => 'https://mt-market-data-client-api-v1.%s.agiliumtrade.ai',
+        'manager'     => 'https://mt-manager-api-v1.%s.agiliumtrade.ai',
+        'riskManagement' => 'https://risk-management-api-v1.%s.agiliumtrade.ai',
     ];
 
     private Http $accountHttp;
@@ -97,6 +99,24 @@ class MetaApiClient
             $this->token,
             $serverUrl ?? $this->regionalBaseUrl('terminal', $region),
             $marketDataServerUrl ?? $this->regionalBaseUrl('marketData', $region),
+            $this->client
+        );
+    }
+
+    public function manager(?string $region = null, ?string $serverUrl = null): ManagerApi
+    {
+        return new ManagerApi(
+            $this->token,
+            $serverUrl ?? $this->regionalBaseUrl('manager', $region),
+            $this->client
+        );
+    }
+
+    public function riskManagement(?string $region = null, ?string $serverUrl = null): RiskManagementApi
+    {
+        return new RiskManagementApi(
+            $this->token,
+            $serverUrl ?? $this->regionalBaseUrl('riskManagement', $region),
             $this->client
         );
     }

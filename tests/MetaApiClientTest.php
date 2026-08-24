@@ -7,8 +7,10 @@ use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
 use Psr\Http\Message\ResponseInterface;
 use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
+use Victorycodedev\MetaapiCloudPhpSdk\ManagerApi;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
+use Victorycodedev\MetaapiCloudPhpSdk\RiskManagementApi;
 use Victorycodedev\MetaapiCloudPhpSdk\TerminalApi;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\Account;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\AccountManagement\AccountReplica;
@@ -24,6 +26,9 @@ use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Logs;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Trading;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Copyfactory\Webhooks;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Metastats\Metrics;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Manager\MetaTrader4Manager;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\Manager\MetaTrader5Manager;
+use Victorycodedev\MetaapiCloudPhpSdk\Resources\RiskManagement\Trackers;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\Credits;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\Margin;
 use Victorycodedev\MetaapiCloudPhpSdk\Resources\Terminal\MarketData;
@@ -54,6 +59,11 @@ it('exposes focused resource objects from the root client', function (): void {
     expect($client->terminal()->marketData())->toBeInstanceOf(MarketData::class);
     expect($client->terminal()->margin())->toBeInstanceOf(Margin::class);
     expect($client->terminal()->credits())->toBeInstanceOf(Credits::class);
+    expect($client->manager())->toBeInstanceOf(ManagerApi::class);
+    expect($client->manager()->mt4())->toBeInstanceOf(MetaTrader4Manager::class);
+    expect($client->manager()->mt5())->toBeInstanceOf(MetaTrader5Manager::class);
+    expect($client->riskManagement())->toBeInstanceOf(RiskManagementApi::class);
+    expect($client->riskManagement()->trackers())->toBeInstanceOf(Trackers::class);
 });
 
 it('shares injected clients with account resources', function (): void {
@@ -117,6 +127,35 @@ it('resolves terminal market data urls separately', function (): void {
     $client->terminal(region: 'london')->marketData()->historicalCandles('account-id', 'EURUSD', '1m');
 
     expect($httpClient->lastUri)->toBe('https://mt-market-data-client-api-v1.london.agiliumtrade.ai/users/current/accounts/account-id/historical-market-data/symbols/EURUSD/timeframes/1m/candles?limit=1000');
+});
+
+it('resolves Manager regional urls', function (): void {
+    $httpClient = new CapturingClient();
+    $client = new MetaApiClient('test-token', $httpClient);
+
+    $client->manager(region: 'london')->mt4()->groups('profile-id');
+
+    expect($httpClient->lastUri)->toBe('https://mt-manager-api-v1.london.agiliumtrade.ai/users/current/mt4/provisioning-profiles/profile-id/groups');
+});
+
+it('resolves Risk Management regional urls', function (): void {
+    $httpClient = new CapturingClient();
+    $client = new MetaApiClient('test-token', $httpClient);
+
+    $client->riskManagement(region: 'london')->trackers()->trackers('account-id');
+
+    expect($httpClient->lastUri)->toBe('https://risk-management-api-v1.london.agiliumtrade.ai/users/current/accounts/account-id/trackers');
+});
+
+it('allows custom Manager and Risk Management urls for private regions', function (): void {
+    $httpClient = new CapturingClient();
+    $client = new MetaApiClient('test-token', $httpClient);
+
+    $client->manager(serverUrl: 'https://mt-manager-api-v1.tokyo.example.com')->mt5()->groups('profile-id');
+    expect($httpClient->lastUri)->toBe('https://mt-manager-api-v1.tokyo.example.com/users/current/mt5/provisioning-profiles/profile-id/groups');
+
+    $client->riskManagement(serverUrl: 'https://risk-management-api-v1.tokyo.example.com')->trackers()->trackers('account-id');
+    expect($httpClient->lastUri)->toBe('https://risk-management-api-v1.tokyo.example.com/users/current/accounts/account-id/trackers');
 });
 
 class CapturingClient implements ClientInterface

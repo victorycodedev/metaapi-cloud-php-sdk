@@ -7,8 +7,10 @@ use GuzzleHttp\Middleware;
 use PHPUnit\Framework\Assert;
 use Victorycodedev\MetaapiCloudPhpSdk\CopyFactory;
 use Victorycodedev\MetaapiCloudPhpSdk\Http;
+use Victorycodedev\MetaapiCloudPhpSdk\ManagerApi;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaApiClient;
 use Victorycodedev\MetaapiCloudPhpSdk\MetaStats;
+use Victorycodedev\MetaapiCloudPhpSdk\RiskManagementApi;
 use Victorycodedev\MetaapiCloudPhpSdk\TerminalApi;
 
 expect()->extend('toHaveSentRequest', function (string $method, string $path): void {
@@ -87,6 +89,42 @@ function terminalWithHistory(array $responses, array &$history = []): TerminalAp
         'test-token',
         'https://mt-client-api-v1.new-york.agiliumtrade.ai',
         'https://mt-market-data-client-api-v1.new-york.agiliumtrade.ai',
+        $client
+    );
+}
+
+function managerWithHistory(array $responses, array &$history = []): ManagerApi
+{
+    $mock = new MockHandler($responses);
+    $stack = HandlerStack::create($mock);
+    $stack->push(Middleware::history($history));
+
+    $client = new Client([
+        'handler'     => $stack,
+        'http_errors' => false,
+    ]);
+
+    return new ManagerApi(
+        'test-token',
+        'https://mt-manager-api-v1.new-york.agiliumtrade.ai',
+        $client
+    );
+}
+
+function riskManagementWithHistory(array $responses, array &$history = []): RiskManagementApi
+{
+    $mock = new MockHandler($responses);
+    $stack = HandlerStack::create($mock);
+    $stack->push(Middleware::history($history));
+
+    $client = new Client([
+        'handler'     => $stack,
+        'http_errors' => false,
+    ]);
+
+    return new RiskManagementApi(
+        'test-token',
+        'https://risk-management-api-v1.new-york.agiliumtrade.ai',
         $client
     );
 }
